@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Compass, Sparkles, Shield } from "lucide-react";
+import { Compass, Sparkles, Shield, Instagram } from "lucide-react";
 import VenueCard from "@/components/VenueCard";
 import WaitlistForm from "@/components/WaitlistForm";
 import { Logo } from "@/components/Logo";
@@ -113,7 +113,15 @@ export default function Home() {
           <span className="font-serif text-sm text-forest/50">
             &copy; {new Date().getFullYear()} Dry Trip
           </span>
-          <span className="text-xs text-forest/40">Travel clearly.</span>
+          <a
+            href="https://www.instagram.com/drytrip.co"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-forest/50 transition-colors hover:text-forest"
+          >
+            <Instagram className="size-4" />
+            <span>Follow us</span>
+          </a>
         </div>
       </footer>
     </div>

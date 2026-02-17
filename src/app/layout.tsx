@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dry Trip — Luxury Travel, Hold the Hangover",
+  title: "Dry Trip — Luxury Travel at Full Resolution",
   description:
     "The first travel directory and AI planner built for clear-headed luxury.",
   icons: {
