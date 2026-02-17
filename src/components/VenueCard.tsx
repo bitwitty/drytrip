@@ -7,7 +7,7 @@ export default function VenueCard() {
       {/* Venue image */}
       <div className="relative h-52">
         <Image
-          src="/villa-clarite.jpg"
+          src="/villa-clarite.png"
           alt="Villa Clarité terrace overlooking the Amalfi Coast"
           fill
           className="object-cover"
