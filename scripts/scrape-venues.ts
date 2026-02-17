@@ -71,7 +71,7 @@ const MENU_PATH_PATTERNS = [
 
 const MAX_VENUES = 20;
 const SCRAPE_TIMEOUT_MS = 10_000;
-const CONCURRENT_LIMIT = 5;
+const CONCURRENT_LIMIT = 3;
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -166,7 +166,7 @@ async function getPlaceWebsite(placeId: string): Promise<string | null> {
  * by crawling the homepage for links matching known menu patterns.
  * Falls back to the homepage itself if no menu link is found.
  */
-async function findMenuUrl(websiteUrl: string): Promise<string> {
+async function findMenuUrl(websiteUrl: string, logPrefix: string): Promise<string> {
   try {
     const { data: html } = await axios.get(websiteUrl, {
       timeout: SCRAPE_TIMEOUT_MS,
@@ -190,13 +190,16 @@ async function findMenuUrl(websiteUrl: string): Promise<string> {
       const fullUrl = resolveUrl(link.href, base);
       if (!fullUrl) continue;
 
+      // Skip PDF links — we can't parse them reliably
+      if (/\.pdf(\?|$)/i.test(fullUrl)) continue;
+
       const matchesPath = MENU_PATH_PATTERNS.some((p) => p.test(fullUrl));
       const matchesText = /menu|drinks|cocktail|beverage|zero.?proof|mocktail/i.test(
         link.text
       );
 
       if (matchesPath || matchesText) {
-        console.log(`  [menu] Found menu link: ${fullUrl}`);
+        console.log(`${logPrefix}[menu] Found menu link: ${fullUrl}`);
         return fullUrl;
       }
     }
@@ -221,14 +224,34 @@ function resolveUrl(href: string, base: URL): string | null {
 /**
  * Scrape the text content from a URL, stripping HTML.
  */
-async function scrapePageText(url: string): Promise<string | null> {
+async function scrapePageText(url: string, logPrefix: string): Promise<string | null> {
+  // Skip PDF URLs entirely — cheerio can't parse binary content
+  if (/\.pdf(\?|$)/i.test(url)) {
+    console.log(`${logPrefix}[scrape] Skipping PDF URL: ${url}`);
+    return null;
+  }
+
   try {
-    const { data: html } = await axios.get(url, {
+    const { data: html, headers } = await axios.get(url, {
       timeout: SCRAPE_TIMEOUT_MS,
-      headers: { "User-Agent": "DryTripBot/1.0 (menu-analysis)" },
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; DryTripBot/1.0; +https://drytrip.co)",
+        Accept: "text/html,application/xhtml+xml",
+      },
       maxRedirects: 5,
       responseType: "text",
     });
+
+    // Detect binary/PDF content that slipped through
+    const contentType = headers["content-type"] ?? "";
+    if (
+      contentType.includes("application/pdf") ||
+      contentType.includes("application/octet-stream")
+    ) {
+      console.log(`${logPrefix}[scrape] Skipping binary content from ${url}`);
+      return null;
+    }
 
     const $ = cheerio.load(html);
 
@@ -241,7 +264,7 @@ async function scrapePageText(url: string): Promise<string | null> {
     return text.slice(0, 12_000) || null;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.log(`  [scrape] Failed to fetch ${url}: ${message}`);
+    console.log(`${logPrefix}[scrape] Failed to fetch ${url}: ${message}`);
     return null;
   }
 }
@@ -353,8 +376,8 @@ async function processVenue(
   city: string,
   index: number
 ): Promise<VenueResult | null> {
-  const label = `[${index + 1}] ${place.name}`;
-  console.log(`\n${label}`);
+  const prefix = `  [${index + 1}/${MAX_VENUES}] ${place.name} | `;
+  console.log(`\n[${index + 1}] ${place.name}`);
 
   // 1. Get website from Place Details
   let websiteUrl = place.website ?? null;
@@ -363,19 +386,19 @@ async function processVenue(
   }
 
   if (!websiteUrl) {
-    console.log(`  [skip] No website found`);
+    console.log(`${prefix}[skip] No website found`);
     return null;
   }
-  console.log(`  [web] ${websiteUrl}`);
+  console.log(`${prefix}[web] ${websiteUrl}`);
 
   // 2. Find menu page
-  const menuUrl = await findMenuUrl(websiteUrl);
-  console.log(`  [menu] Scraping: ${menuUrl}`);
+  const menuUrl = await findMenuUrl(websiteUrl, prefix);
 
   // 3. Scrape menu page text
-  const pageText = await scrapePageText(menuUrl);
+  console.log(`${prefix}[menu] Scraping: ${menuUrl}`);
+  const pageText = await scrapePageText(menuUrl, prefix);
   if (!pageText || pageText.length < 50) {
-    console.log(`  [skip] Insufficient page content (${pageText?.length ?? 0} chars)`);
+    console.log(`${prefix}[skip] Insufficient page content (${pageText?.length ?? 0} chars)`);
     return {
       venue_name: place.name,
       city,
@@ -384,15 +407,15 @@ async function processVenue(
       website_url: websiteUrl,
     };
   }
-  console.log(`  [scrape] Got ${pageText.length} chars of text`);
+  console.log(`${prefix}[scrape] Got ${pageText.length} chars of text`);
 
   // 4. LLM analysis
   const analysis = await analyzeDryScore(anthropic, pageText, place.name);
   console.log(
-    `  [score] Dry Score: ${analysis.dry_score}/5 — Top drink: ${analysis.top_na_drink}`
+    `${prefix}[score] Dry Score: ${analysis.dry_score}/5 — Top drink: ${analysis.top_na_drink}`
   );
   if (analysis.reasoning) {
-    console.log(`  [reason] ${analysis.reasoning}`);
+    console.log(`${prefix}[reason] ${analysis.reasoning}`);
   }
 
   return {
