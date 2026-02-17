@@ -11,12 +11,12 @@
  *
  * Required env vars (see .env.example):
  *   GOOGLE_PLACES_API_KEY
- *   OPENAI_API_KEY
+ *   ANTHROPIC_API_KEY
  */
 
-import axios, { type AxiosError } from "axios";
+import axios from "axios";
 import * as cheerio from "cheerio";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { parseArgs } from "node:util";
 
 // ---------------------------------------------------------------------------
@@ -46,7 +46,7 @@ interface DryScoreAnalysis {
 }
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const PLACES_TEXT_SEARCH_URL =
   "https://maps.googleapis.com/maps/api/place/textsearch/json";
@@ -286,26 +286,29 @@ ${menuText}`;
 }
 
 async function analyzeDryScore(
-  openai: OpenAI,
+  anthropic: Anthropic,
   menuText: string,
   venueName: string
 ): Promise<DryScoreAnalysis> {
   const prompt = buildAnalysisPrompt(menuText, venueName);
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+  const response = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 300,
     messages: [{ role: "user", content: prompt }],
-    temperature: 0.2,
-    response_format: { type: "json_object" },
   });
 
-  const content = response.choices[0]?.message?.content;
+  const content =
+    response.content[0]?.type === "text" ? response.content[0].text : null;
   if (!content) {
     return { dry_score: 0, top_na_drink: "N/A", reasoning: "No LLM response" };
   }
 
   try {
-    const parsed = JSON.parse(content) as DryScoreAnalysis;
+    // Extract JSON from the response (Claude may wrap it in markdown)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found");
+    const parsed = JSON.parse(jsonMatch[0]) as DryScoreAnalysis;
     return {
       dry_score: Math.max(0, Math.min(5, Math.round(parsed.dry_score))),
       top_na_drink: parsed.top_na_drink || "N/A",
@@ -355,7 +358,7 @@ async function mapWithConcurrency<T, R>(
 // ---------------------------------------------------------------------------
 
 async function processVenue(
-  openai: OpenAI,
+  anthropic: Anthropic,
   place: PlaceResult,
   city: string,
   index: number
@@ -394,7 +397,7 @@ async function processVenue(
   console.log(`  [scrape] Got ${pageText.length} chars of text`);
 
   // 4. LLM analysis
-  const analysis = await analyzeDryScore(openai, pageText, place.name);
+  const analysis = await analyzeDryScore(anthropic, pageText, place.name);
   console.log(
     `  [score] Dry Score: ${analysis.dry_score}/5 — Top drink: ${analysis.top_na_drink}`
   );
@@ -417,8 +420,8 @@ async function main() {
     console.error("Missing GOOGLE_PLACES_API_KEY environment variable");
     process.exit(1);
   }
-  if (!OPENAI_API_KEY) {
-    console.error("Missing OPENAI_API_KEY environment variable");
+  if (!ANTHROPIC_API_KEY) {
+    console.error("Missing ANTHROPIC_API_KEY environment variable");
     process.exit(1);
   }
 
@@ -427,7 +430,7 @@ async function main() {
   console.log(`   City: ${city}`);
   console.log(`   Category: ${category}\n`);
 
-  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+  const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
   // Step 1: Search for venues
   const places = await searchPlaces(city, category);
@@ -440,7 +443,7 @@ async function main() {
   const results = await mapWithConcurrency(
     places,
     CONCURRENT_LIMIT,
-    (place, i) => processVenue(openai, place, city, i)
+    (place, i) => processVenue(anthropic, place, city, i)
   );
 
   // Step 3: Filter nulls and build output
