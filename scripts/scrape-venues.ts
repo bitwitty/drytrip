@@ -16,6 +16,7 @@
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY (optional — skips DB upsert if missing)
  */
 
+import "dotenv/config";
 import axios from "axios";
 import * as cheerio from "cheerio";
 import Anthropic from "@anthropic-ai/sdk";
