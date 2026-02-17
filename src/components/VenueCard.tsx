@@ -20,14 +20,14 @@ export default function VenueCard() {
       {/* Card content */}
       <div className="p-5">
         <h3 className="font-serif text-xl text-forest">
-          The Standard, London
+          Villa Clarit&eacute;
         </h3>
         <div className="mt-1.5 flex items-center gap-1.5 text-sm text-forest/60">
           <MapPin className="size-3.5" />
-          <span>King&apos;s Cross, London</span>
+          <span>Ravello, Amalfi Coast</span>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {["Rooftop Bar", "Mocktail Menu", "Wellness Spa"].map((tag) => (
+          {["Terrace Dining", "Mocktail Menu", "Wellness Spa"].map((tag) => (
             <span
               key={tag}
               className="rounded-full bg-linen px-3 py-1 text-xs tracking-wide text-forest/70"
