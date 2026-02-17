@@ -52,8 +52,11 @@ export default function Home() {
               <p className="mt-3 text-xs text-forest/40">{c.ctaMicro}</p>
             </div>
           </div>
-          <div className="flex justify-center lg:justify-end">
+          <div className="flex flex-col items-center lg:items-end">
             <VenueCard />
+            <p className="mt-2 text-xs italic text-forest/30">
+              Fictitious venue shown for illustration purposes.
+            </p>
           </div>
         </div>
       </section>
