@@ -49,9 +49,9 @@ const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const PLACES_TEXT_SEARCH_URL =
-  "https://maps.googleapis.com/maps/api/place/textsearch/json";
+  "https://places.googleapis.com/v1/places:searchText";
 const PLACES_DETAILS_URL =
-  "https://maps.googleapis.com/maps/api/place/details/json";
+  "https://places.googleapis.com/v1/places";
 
 const CATEGORY_KEYWORDS: Record<string, string> = {
   hotel: "best hotels",
@@ -115,40 +115,31 @@ async function searchPlaces(
   const query = `${CATEGORY_KEYWORDS[category]} in ${city}`;
   console.log(`[places] Searching: "${query}"`);
 
+  const { data } = await axios.post(
+    PLACES_TEXT_SEARCH_URL,
+    {
+      textQuery: query,
+      maxResultCount: MAX_VENUES,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY!,
+        "X-Goog-FieldMask":
+          "places.id,places.displayName,places.formattedAddress,places.rating,places.websiteUri",
+      },
+    }
+  );
+
   const allResults: PlaceResult[] = [];
-  let nextPageToken: string | undefined;
-
-  // Google returns max 20 per page; we fetch up to MAX_VENUES
-  while (allResults.length < MAX_VENUES) {
-    const params: Record<string, string> = {
-      query,
-      key: GOOGLE_PLACES_API_KEY!,
-    };
-    if (nextPageToken) {
-      params.pagetoken = nextPageToken;
-    }
-
-    const { data } = await axios.get(PLACES_TEXT_SEARCH_URL, { params });
-
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      throw new Error(`Places text search failed: ${data.status} — ${data.error_message ?? ""}`);
-    }
-
-    for (const r of data.results ?? []) {
-      if (allResults.length >= MAX_VENUES) break;
-      allResults.push({
-        place_id: r.place_id,
-        name: r.name,
-        formatted_address: r.formatted_address,
-        rating: r.rating,
-      });
-    }
-
-    nextPageToken = data.next_page_token;
-    if (!nextPageToken) break;
-
-    // Google requires a short delay before using next_page_token
-    await sleep(2000);
+  for (const r of data.places ?? []) {
+    allResults.push({
+      place_id: r.id,
+      name: r.displayName?.text ?? r.id,
+      formatted_address: r.formattedAddress,
+      rating: r.rating,
+      website: r.websiteUri,
+    });
   }
 
   console.log(`[places] Found ${allResults.length} venues`);
@@ -156,15 +147,14 @@ async function searchPlaces(
 }
 
 async function getPlaceWebsite(placeId: string): Promise<string | null> {
-  const { data } = await axios.get(PLACES_DETAILS_URL, {
-    params: {
-      place_id: placeId,
-      fields: "website",
-      key: GOOGLE_PLACES_API_KEY!,
+  const { data } = await axios.get(`${PLACES_DETAILS_URL}/${placeId}`, {
+    headers: {
+      "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY!,
+      "X-Goog-FieldMask": "websiteUri",
     },
   });
 
-  return data.result?.website ?? null;
+  return data.websiteUri ?? null;
 }
 
 // ---------------------------------------------------------------------------
