@@ -23,7 +23,7 @@ export default function WaitlistForm() {
         setStatus("success");
       } else {
         setStatus("error");
-        setErrorMessage("Something went wrong. Please try again.");
+        setErrorMessage(`${error.message} (code: ${error.code})`);
       }
     } else {
       setStatus("success");
