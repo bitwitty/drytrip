@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Dry Trip — Luxury Travel, Hold the Hangover",
   description:
     "The first travel directory and AI planner built for clear-headed luxury.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Compass, Sparkles, Shield } from "lucide-react";
 import VenueCard from "@/components/VenueCard";
 import WaitlistForm from "@/components/WaitlistForm";
+import { Logo } from "@/components/Logo";
 import { getVariant, copy, type Variant } from "@/lib/ab";
 
 const featureIcons = [Compass, Sparkles, Shield];
@@ -23,9 +24,7 @@ export default function Home() {
     <div className="min-h-screen">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-6 md:px-12">
-        <span className="font-serif text-2xl tracking-tight text-forest">
-          Dry Trip
-        </span>
+        <Logo />
         <a
           href="#waitlist"
           className="text-sm font-medium text-forest/70 transition-colors hover:text-forest"
