@@ -88,6 +88,7 @@ const MENU_PATH_PATTERNS = [
 
 const MAX_VENUES = 20;
 const SCRAPE_TIMEOUT_MS = 10_000;
+const API_TIMEOUT_MS = 30_000;
 const CONCURRENT_LIMIT = 3;
 
 // ---------------------------------------------------------------------------
@@ -133,21 +134,37 @@ async function searchPlaces(
   const query = `${CATEGORY_KEYWORDS[category]} in ${city}`;
   console.log(`[places] Searching: "${query}"`);
 
-  const { data } = await axios.post(
-    PLACES_TEXT_SEARCH_URL,
-    {
-      textQuery: query,
-      maxResultCount: MAX_VENUES,
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY!,
-        "X-Goog-FieldMask":
-          "places.id,places.displayName,places.formattedAddress,places.rating,places.websiteUri,places.photos",
+  let data: any;
+  try {
+    const response = await axios.post(
+      PLACES_TEXT_SEARCH_URL,
+      {
+        textQuery: query,
+        maxResultCount: MAX_VENUES,
       },
+      {
+        timeout: API_TIMEOUT_MS,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY!,
+          "X-Goog-FieldMask":
+            "places.id,places.displayName,places.formattedAddress,places.rating,places.websiteUri,places.photos",
+        },
+      }
+    );
+    data = response.data;
+  } catch (err: unknown) {
+    const axErr = err as any;
+    if (axErr.response) {
+      console.error(`[places] API error ${axErr.response.status}: ${JSON.stringify(axErr.response.data)}`);
+      console.error(`[places] Make sure the "Places API (New)" is enabled in your Google Cloud Console.`);
+    } else if (axErr.code === "ECONNABORTED") {
+      console.error(`[places] Request timed out after ${API_TIMEOUT_MS / 1000}s`);
+    } else {
+      console.error(`[places] Network error: ${axErr.code ?? axErr.message}`);
     }
-  );
+    return [];
+  }
 
   const allResults: PlaceResult[] = [];
   for (const r of data.places ?? []) {
@@ -172,14 +189,20 @@ async function searchPlaces(
 }
 
 async function getPlaceWebsite(placeId: string): Promise<string | null> {
-  const { data } = await axios.get(`${PLACES_DETAILS_URL}/${placeId}`, {
-    headers: {
-      "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY!,
-      "X-Goog-FieldMask": "websiteUri",
-    },
-  });
-
-  return data.websiteUri ?? null;
+  try {
+    const { data } = await axios.get(`${PLACES_DETAILS_URL}/${placeId}`, {
+      timeout: API_TIMEOUT_MS,
+      headers: {
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY!,
+        "X-Goog-FieldMask": "websiteUri",
+      },
+    });
+    return data.websiteUri ?? null;
+  } catch (err: unknown) {
+    const axErr = err as any;
+    console.log(`  [details] Failed to get website for ${placeId}: ${axErr.response?.status ?? axErr.code ?? axErr.message}`);
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -336,11 +359,14 @@ async function analyzeDryScore(
 ): Promise<DryScoreAnalysis> {
   const prompt = buildAnalysisPrompt(menuText, venueName);
 
-  const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 300,
-    messages: [{ role: "user", content: prompt }],
-  });
+  const response = await anthropic.messages.create(
+    {
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 300,
+      messages: [{ role: "user", content: prompt }],
+    },
+    { timeout: API_TIMEOUT_MS },
+  );
 
   const content =
     response.content[0]?.type === "text" ? response.content[0].text : null;
@@ -514,18 +540,21 @@ async function main() {
   }
 
   const { city, category, country } = parseCliArgs();
-  console.log(`\n🔍 Dry Trip Venue Scraper`);
+  console.log(`\nDry Trip Venue Scraper`);
   console.log(`   City: ${city}`);
   console.log(`   Category: ${category}`);
   if (country) console.log(`   Country: ${country}`);
+  console.log(`   Google API key: ${GOOGLE_PLACES_API_KEY!.slice(0, 10)}...`);
   console.log();
 
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
   // Step 1: Search for venues
+  console.log("[places] Calling Google Places API...");
   const places = await searchPlaces(city, category);
   if (places.length === 0) {
-    console.log("No venues found. Try a different city or category.");
+    console.log("No venues found. Check that the 'Places API (New)' is enabled in your Google Cloud Console,");
+    console.log("and that billing is active on the project. Also try a different city or category.");
     process.exit(0);
   }
 
@@ -574,6 +603,9 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Fatal error:", err);
+  console.error("\nFatal error:", err.message ?? err);
+  if (err.code) console.error("Error code:", err.code);
+  if (err.response?.status) console.error("HTTP status:", err.response.status);
+  if (err.response?.data) console.error("Response:", JSON.stringify(err.response.data, null, 2));
   process.exit(1);
 });
