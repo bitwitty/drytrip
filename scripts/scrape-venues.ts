@@ -7,16 +7,19 @@
  * based on non-alcoholic drink sophistication.
  *
  * Usage:
- *   npx tsx scripts/scrape-venues.ts --city "New York" --category Restaurant
+ *   npx tsx scripts/scrape-venues.ts --city "New York" --category Restaurant --country "USA"
  *
  * Required env vars (see .env.example):
  *   GOOGLE_PLACES_API_KEY
  *   ANTHROPIC_API_KEY
+ *   NEXT_PUBLIC_SUPABASE_URL      (optional — skips DB upsert if missing)
+ *   NEXT_PUBLIC_SUPABASE_ANON_KEY (optional — skips DB upsert if missing)
  */
 
 import axios from "axios";
 import * as cheerio from "cheerio";
 import Anthropic from "@anthropic-ai/sdk";
+import { createClient } from "@supabase/supabase-js";
 import { parseArgs } from "node:util";
 
 // ---------------------------------------------------------------------------
@@ -29,24 +32,37 @@ interface PlaceResult {
   formatted_address?: string;
   rating?: number;
   website?: string;
+  photo_uri?: string;
 }
 
 interface VenueResult {
-  venue_name: string;
+  name: string;
   city: string;
+  country: string;
+  category: string;
   dry_score: number;
   top_na_drink: string;
+  description: string;
+  menu_url: string | null;
   website_url: string;
+  image_url: string | null;
+  af_minibar: boolean;
+  zero_proof_pairing: boolean;
+  status: string;
 }
 
 interface DryScoreAnalysis {
   dry_score: number;
   top_na_drink: string;
   reasoning: string;
+  af_minibar: boolean;
+  zero_proof_pairing: boolean;
 }
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const PLACES_TEXT_SEARCH_URL =
   "https://places.googleapis.com/v1/places:searchText";
@@ -77,18 +93,19 @@ const CONCURRENT_LIMIT = 3;
 // CLI argument parsing
 // ---------------------------------------------------------------------------
 
-function parseCliArgs(): { city: string; category: string } {
+function parseCliArgs(): { city: string; category: string; country: string } {
   const { values } = parseArgs({
     options: {
       city: { type: "string", short: "c" },
       category: { type: "string", short: "t" },
+      country: { type: "string", short: "n" },
     },
     strict: true,
   });
 
   if (!values.city || !values.category) {
     console.error(
-      "Usage: npx tsx scripts/scrape-venues.ts --city <city> --category <Hotel|Restaurant|Bar>"
+      "Usage: npx tsx scripts/scrape-venues.ts --city <city> --category <Hotel|Restaurant|Bar> [--country <country>]"
     );
     process.exit(1);
   }
@@ -101,7 +118,7 @@ function parseCliArgs(): { city: string; category: string } {
     process.exit(1);
   }
 
-  return { city: values.city, category };
+  return { city: values.city, category, country: values.country ?? "" };
 }
 
 // ---------------------------------------------------------------------------
@@ -126,19 +143,26 @@ async function searchPlaces(
         "Content-Type": "application/json",
         "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY!,
         "X-Goog-FieldMask":
-          "places.id,places.displayName,places.formattedAddress,places.rating,places.websiteUri",
+          "places.id,places.displayName,places.formattedAddress,places.rating,places.websiteUri,places.photos",
       },
     }
   );
 
   const allResults: PlaceResult[] = [];
   for (const r of data.places ?? []) {
+    // Build a photo URL from the first photo reference if available
+    const photoRef = r.photos?.[0]?.name;
+    const photoUri = photoRef
+      ? `https://places.googleapis.com/v1/${photoRef}/media?maxWidthPx=800&key=${GOOGLE_PLACES_API_KEY}`
+      : undefined;
+
     allResults.push({
       place_id: r.id,
       name: r.displayName?.text ?? r.id,
       formatted_address: r.formattedAddress,
       rating: r.rating,
       website: r.websiteUri,
+      photo_uri: photoUri,
     });
   }
 
@@ -287,11 +311,17 @@ Assign a Dry Score (1-5) based on these criteria — award +1 for each that appl
 
 If the page content has no discernible drink/menu information, assign a score of 0.
 
+Also determine:
+• af_minibar: Does the venue mention an alcohol-free minibar or in-room NA beverage selection? (true/false)
+• zero_proof_pairing: Does the venue offer non-alcoholic drink pairings with food/tasting menus? (true/false)
+
 Respond with ONLY valid JSON in this exact format:
 {
   "dry_score": <number 0-5>,
   "top_na_drink": "<name of the single best/most interesting NA drink, or 'N/A' if none found>",
-  "reasoning": "<brief 1-2 sentence explanation>"
+  "reasoning": "<brief 1-2 sentence explanation>",
+  "af_minibar": <true or false>,
+  "zero_proof_pairing": <true or false>
 }
 
 --- PAGE TEXT ---
@@ -314,7 +344,7 @@ async function analyzeDryScore(
   const content =
     response.content[0]?.type === "text" ? response.content[0].text : null;
   if (!content) {
-    return { dry_score: 0, top_na_drink: "N/A", reasoning: "No LLM response" };
+    return { dry_score: 0, top_na_drink: "N/A", reasoning: "No LLM response", af_minibar: false, zero_proof_pairing: false };
   }
 
   try {
@@ -326,10 +356,12 @@ async function analyzeDryScore(
       dry_score: Math.max(0, Math.min(5, Math.round(parsed.dry_score))),
       top_na_drink: parsed.top_na_drink || "N/A",
       reasoning: parsed.reasoning || "",
+      af_minibar: parsed.af_minibar === true,
+      zero_proof_pairing: parsed.zero_proof_pairing === true,
     };
   } catch {
     console.log(`  [llm] Failed to parse response: ${content.slice(0, 200)}`);
-    return { dry_score: 0, top_na_drink: "N/A", reasoning: "Parse error" };
+    return { dry_score: 0, top_na_drink: "N/A", reasoning: "Parse error", af_minibar: false, zero_proof_pairing: false };
   }
 }
 
@@ -374,6 +406,8 @@ async function processVenue(
   anthropic: Anthropic,
   place: PlaceResult,
   city: string,
+  country: string,
+  category: string,
   index: number
 ): Promise<VenueResult | null> {
   const prefix = `  [${index + 1}/${MAX_VENUES}] ${place.name} | `;
@@ -393,6 +427,7 @@ async function processVenue(
 
   // 2. Find menu page
   const menuUrl = await findMenuUrl(websiteUrl, prefix);
+  const foundMenuPage = menuUrl !== websiteUrl;
 
   // 3. Scrape menu page text
   console.log(`${prefix}[menu] Scraping: ${menuUrl}`);
@@ -400,11 +435,19 @@ async function processVenue(
   if (!pageText || pageText.length < 50) {
     console.log(`${prefix}[skip] Insufficient page content (${pageText?.length ?? 0} chars)`);
     return {
-      venue_name: place.name,
+      name: place.name,
       city,
+      country,
+      category,
       dry_score: 0,
       top_na_drink: "N/A",
+      description: "No menu content found",
+      menu_url: foundMenuPage ? menuUrl : null,
       website_url: websiteUrl,
+      image_url: place.photo_uri ?? null,
+      af_minibar: false,
+      zero_proof_pairing: false,
+      status: "scraped",
     };
   }
   console.log(`${prefix}[scrape] Got ${pageText.length} chars of text`);
@@ -419,12 +462,43 @@ async function processVenue(
   }
 
   return {
-    venue_name: place.name,
+    name: place.name,
     city,
+    country,
+    category,
     dry_score: analysis.dry_score,
     top_na_drink: analysis.top_na_drink,
+    description: analysis.reasoning,
+    menu_url: foundMenuPage ? menuUrl : null,
     website_url: websiteUrl,
+    image_url: place.photo_uri ?? null,
+    af_minibar: analysis.af_minibar,
+    zero_proof_pairing: analysis.zero_proof_pairing,
+    status: "scraped",
   };
+}
+
+async function upsertToSupabase(venues: VenueResult[]): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.log("\n[supabase] Skipping — SUPABASE_URL or SUPABASE_ANON_KEY not set");
+    return;
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  console.log(`\n[supabase] Upserting ${venues.length} venues...`);
+
+  const { data, error } = await supabase
+    .from("venues")
+    .upsert(venues, { onConflict: "name,city" })
+    .select();
+
+  if (error) {
+    console.error("[supabase] Upsert failed:", error.message);
+    console.error("[supabase] Details:", JSON.stringify(error, null, 2));
+  } else {
+    console.log(`[supabase] Successfully upserted ${data?.length ?? 0} venues`);
+  }
 }
 
 async function main() {
@@ -438,10 +512,12 @@ async function main() {
     process.exit(1);
   }
 
-  const { city, category } = parseCliArgs();
+  const { city, category, country } = parseCliArgs();
   console.log(`\n🔍 Dry Trip Venue Scraper`);
   console.log(`   City: ${city}`);
-  console.log(`   Category: ${category}\n`);
+  console.log(`   Category: ${category}`);
+  if (country) console.log(`   Country: ${country}`);
+  console.log();
 
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
@@ -456,7 +532,7 @@ async function main() {
   const results = await mapWithConcurrency(
     places,
     CONCURRENT_LIMIT,
-    (place, i) => processVenue(anthropic, place, city, i)
+    (place, i) => processVenue(anthropic, place, city, country, category, i)
   );
 
   // Step 3: Filter nulls and build output
@@ -467,13 +543,13 @@ async function main() {
   // Sort by dry_score descending
   venues.sort((a, b) => b.dry_score - a.dry_score);
 
-  // Step 4: Output JSON (Supabase-ready)
+  // Step 4: Output JSON
   console.log("\n" + "=".repeat(60));
-  console.log("RESULTS — Supabase-ready JSON");
+  console.log("RESULTS");
   console.log("=".repeat(60) + "\n");
   console.log(JSON.stringify(venues, null, 2));
 
-  // Also write to file
+  // Write to local file
   const outPath = `scripts/output/${city.toLowerCase().replace(/\s+/g, "-")}-${category}.json`;
   const fs = await import("node:fs");
   const path = await import("node:path");
@@ -483,6 +559,9 @@ async function main() {
   }
   fs.writeFileSync(outPath, JSON.stringify(venues, null, 2));
   console.log(`\nResults written to ${outPath}`);
+
+  // Step 5: Upsert to Supabase
+  await upsertToSupabase(venues);
 
   // Summary
   const scored = venues.filter((v) => v.dry_score > 0);
