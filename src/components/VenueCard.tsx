@@ -1,15 +1,18 @@
+import Image from "next/image";
 import { MapPin, Star, Droplets } from "lucide-react";
 
 export default function VenueCard() {
   return (
     <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-sandstone/60 bg-white shadow-sm">
-      {/* Image placeholder */}
-      <div className="relative h-52 bg-gradient-to-br from-sandstone/40 to-sandstone/70">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm tracking-wide text-forest/40">
-            Photo
-          </span>
-        </div>
+      {/* Venue image */}
+      <div className="relative h-52">
+        <Image
+          src="/villa-clarite.jpg"
+          alt="Villa Clarité terrace overlooking the Amalfi Coast"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 384px"
+        />
         {/* Dry Score badge */}
         <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 shadow-sm backdrop-blur-sm">
           <Droplets className="size-4 text-forest" />
