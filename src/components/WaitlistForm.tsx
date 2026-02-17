@@ -2,11 +2,24 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import type { Variant } from "@/lib/ab";
 import { ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 
-export default function WaitlistForm() {
+interface WaitlistFormProps {
+  variant: Variant;
+  buttonText: string;
+  successMessage: string;
+}
+
+export default function WaitlistForm({
+  variant,
+  buttonText,
+  successMessage,
+}: WaitlistFormProps) {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -16,14 +29,14 @@ export default function WaitlistForm() {
 
     const { error } = await supabase
       .from("waitlist")
-      .insert([{ email: email.trim().toLowerCase() }]);
+      .insert([{ email: email.trim().toLowerCase(), variant }]);
 
     if (error) {
       if (error.code === "23505") {
         setStatus("success");
       } else {
         setStatus("error");
-        setErrorMessage(`${error.message} (code: ${error.code})`);
+        setErrorMessage("Something went wrong. Please try again.");
       }
     } else {
       setStatus("success");
@@ -34,15 +47,16 @@ export default function WaitlistForm() {
     return (
       <div className="flex items-center gap-3 text-forest">
         <CheckCircle className="size-5 shrink-0" />
-        <p className="font-serif text-lg italic">
-          You&apos;re on the list. Sharp mornings await.
-        </p>
+        <p className="font-serif text-lg italic">{successMessage}</p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-start">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-3 sm:flex-row sm:items-start"
+    >
       <div className="flex-1">
         <input
           type="email"
@@ -65,7 +79,7 @@ export default function WaitlistForm() {
           <Loader2 className="size-4 animate-spin" />
         ) : (
           <>
-            Join the Waitlist
+            {buttonText}
             <ArrowRight className="size-4" />
           </>
         )}

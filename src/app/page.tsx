@@ -1,8 +1,24 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Compass, Sparkles, Shield } from "lucide-react";
 import VenueCard from "@/components/VenueCard";
 import WaitlistForm from "@/components/WaitlistForm";
+import { getVariant, copy, type Variant } from "@/lib/ab";
+
+const featureIcons = [Compass, Sparkles, Shield];
 
 export default function Home() {
+  const [variant, setVariant] = useState<Variant | null>(null);
+
+  useEffect(() => {
+    setVariant(getVariant());
+  }, []);
+
+  if (!variant) return null;
+
+  const c = copy[variant];
+
   return (
     <div className="min-h-screen">
       {/* Nav */}
@@ -23,14 +39,18 @@ export default function Home() {
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <h1 className="font-serif text-4xl leading-tight tracking-tight text-forest md:text-5xl lg:text-6xl">
-              Luxury travel, hold the hangover.
+              {c.headline}
             </h1>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-forest/70">
-              The first travel directory and AI planner built for clear-headed
-              luxury.
+              {c.subheadline}
             </p>
             <div className="mt-8" id="waitlist">
-              <WaitlistForm />
+              <WaitlistForm
+                variant={variant}
+                buttonText={c.ctaButton}
+                successMessage={c.successMessage}
+              />
+              <p className="mt-3 text-xs text-forest/40">{c.ctaMicro}</p>
             </div>
           </div>
           <div className="flex justify-center lg:justify-end">
@@ -43,41 +63,44 @@ export default function Home() {
       <section className="border-t border-sandstone/50 bg-white/40">
         <div className="mx-auto max-w-5xl px-6 py-20 md:px-12">
           <h2 className="text-center font-serif text-3xl tracking-tight text-forest">
-            What makes Dry Trip different
+            {c.featuresHeading}
           </h2>
           <div className="mt-12 grid gap-8 sm:grid-cols-3">
-            {[
-              {
-                icon: Compass,
-                title: "Curated Directory",
-                description:
-                  "Every hotel, restaurant, and experience rated on its alcohol-free offerings.",
-              },
-              {
-                icon: Sparkles,
-                title: "AI Trip Planner",
-                description:
-                  "Build a full itinerary tailored to clear-headed luxury — in seconds.",
-              },
-              {
-                icon: Shield,
-                title: "Dry Score",
-                description:
-                  "Our proprietary rating so you know exactly what to expect before you book.",
-              },
-            ].map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-linen">
-                  <feature.icon className="size-6 text-forest" />
+            {c.features.map((feature, i) => {
+              const Icon = featureIcons[i];
+              return (
+                <div key={feature.title} className="text-center">
+                  <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-linen">
+                    <Icon className="size-6 text-forest" />
+                  </div>
+                  <h3 className="mt-4 font-serif text-lg text-forest">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-forest/60">
+                    {feature.description}
+                  </p>
                 </div>
-                <h3 className="mt-4 font-serif text-lg text-forest">
-                  {feature.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-forest/60">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Closing CTA */}
+      <section className="border-t border-sandstone/50">
+        <div className="mx-auto max-w-2xl px-6 py-20 text-center md:px-12">
+          <h2 className="font-serif text-3xl tracking-tight text-forest">
+            {c.closingHeadline}
+          </h2>
+          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-forest/70">
+            {c.closingBody}
+          </p>
+          <div className="mx-auto mt-8 max-w-md">
+            <WaitlistForm
+              variant={variant}
+              buttonText={c.closingCta}
+              successMessage={c.successMessage}
+            />
           </div>
         </div>
       </section>
@@ -88,9 +111,7 @@ export default function Home() {
           <span className="font-serif text-sm text-forest/50">
             &copy; {new Date().getFullYear()} Dry Trip
           </span>
-          <span className="text-xs text-forest/40">
-            Travel clearly.
-          </span>
+          <span className="text-xs text-forest/40">Travel clearly.</span>
         </div>
       </footer>
     </div>
