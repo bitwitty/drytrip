@@ -40,15 +40,20 @@ export default function DirectoryPage() {
 
   useEffect(() => {
     async function fetchVenues() {
-      const { data, error } = await supabase
-        .from("venues")
-        .select("*")
-        .eq("status", "Published");
+      try {
+        const { data, error } = await supabase
+          .from("venues")
+          .select("*")
+          .eq("status", "Published");
 
-      if (!error && data) {
-        setVenues(data as Venue[]);
+        if (!error && data) {
+          setVenues(data as Venue[]);
+        }
+      } catch {
+        // Supabase client unavailable (missing env vars) — show empty state
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     fetchVenues();
   }, []);
