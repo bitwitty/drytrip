@@ -9,14 +9,12 @@ import {
   Search,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { supabase } from "@/lib/supabase";
 import type { Venue } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
 /*  Filter options                                                     */
 /* ------------------------------------------------------------------ */
 
-const CITIES = ["All Cities", "London", "NYC"] as const;
 const CATEGORIES = ["All", "Bar", "Restaurant", "Hotel"] as const;
 
 /* ------------------------------------------------------------------ */
@@ -29,21 +27,23 @@ export default function DirectoryPage() {
   const [city, setCity] = useState<string>("All Cities");
   const [category, setCategory] = useState<string>("All");
 
-  /* Fetch published venues once on mount */
+  /* Derive available cities from the loaded venue data */
+  const cities = useMemo(() => {
+    const unique = Array.from(new Set(venues.map((v) => v.city))).sort();
+    return ["All Cities", ...unique];
+  }, [venues]);
+
+  /* Fetch venues from local API (reads scraped JSON files) */
   useEffect(() => {
     async function fetchVenues() {
       try {
-        const { data, error } = await supabase
-          .from("venues")
-          .select("*")
-          .gt("dry_score", 0)
-          .order("dry_score", { ascending: false });
-
-        if (!error && data) {
-          setVenues(data as Venue[]);
+        const res = await fetch("/api/venues");
+        if (res.ok) {
+          const data: Venue[] = await res.json();
+          setVenues(data);
         }
       } catch {
-        // Supabase may not be configured yet — handled by empty state
+        // API may not be available — handled by empty state
       }
       setLoading(false);
     }
@@ -93,7 +93,7 @@ export default function DirectoryPage() {
         <section className="mx-auto max-w-6xl px-6 py-4 md:px-12">
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
             {/* City pills */}
-            {CITIES.map((c) => (
+            {cities.map((c) => (
               <button
                 key={c}
                 onClick={() => setCity(c)}
