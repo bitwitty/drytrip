@@ -23,17 +23,18 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { parseArgs } from "node:util";
 import { HttpsProxyAgent } from "https-proxy-agent";
+import { HttpProxyAgent } from "http-proxy-agent";
 
 // ---------------------------------------------------------------------------
 // Proxy support — required in sandboxed/container environments
 // ---------------------------------------------------------------------------
 
-const PROXY_URL = process.env.https_proxy || process.env.HTTPS_PROXY || "";
+const PROXY_URL = process.env.https_proxy || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.HTTP_PROXY || "";
 if (PROXY_URL) {
-  const proxyAgent = new HttpsProxyAgent(PROXY_URL);
-  axios.defaults.httpsAgent = proxyAgent;
-  axios.defaults.proxy = false; // let the agent handle proxying
-  console.log(`[proxy] Using HTTPS proxy: ${PROXY_URL.slice(0, 50)}...`);
+  axios.defaults.httpsAgent = new HttpsProxyAgent(PROXY_URL);
+  axios.defaults.httpAgent = new HttpProxyAgent(PROXY_URL);
+  axios.defaults.proxy = false; // let the agents handle proxying
+  console.log(`[proxy] Using proxy for HTTP+HTTPS: ${PROXY_URL.slice(0, 50)}...`);
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +236,20 @@ async function getPlaceWebsite(placeId: string): Promise<string | null> {
 }
 
 // ---------------------------------------------------------------------------
+// Browser-like headers to avoid 403s from CDN/WAF protections
+// ---------------------------------------------------------------------------
+
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  "Cache-Control": "no-cache",
+};
+
+// ---------------------------------------------------------------------------
 // Menu page discovery & scraping
 // ---------------------------------------------------------------------------
 
@@ -247,7 +262,7 @@ async function findMenuUrl(websiteUrl: string, logPrefix: string): Promise<{ url
   try {
     const { data: html } = await axios.get(websiteUrl, {
       timeout: SCRAPE_TIMEOUT_MS,
-      headers: { "User-Agent": "DryTripBot/1.0 (menu-analysis)" },
+      headers: BROWSER_HEADERS,
       maxRedirects: 5,
     });
 
@@ -327,11 +342,7 @@ async function scrapePageText(url: string, logPrefix: string): Promise<string | 
   try {
     const { data: html, headers } = await axios.get(url, {
       timeout: SCRAPE_TIMEOUT_MS,
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; DryTripBot/1.0; +https://drytrip.co)",
-        Accept: "text/html,application/xhtml+xml",
-      },
+      headers: BROWSER_HEADERS,
       maxRedirects: 5,
       responseType: "text",
     });
