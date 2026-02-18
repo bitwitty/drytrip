@@ -163,7 +163,7 @@ async function searchPlaces(
     } else {
       console.error(`[places] Network error: ${axErr.code ?? axErr.message}`);
     }
-    return [];
+    throw err;
   }
 
   const allResults: PlaceResult[] = [];
