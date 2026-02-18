@@ -22,20 +22,6 @@ import * as cheerio from "cheerio";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { parseArgs } from "node:util";
-import { HttpsProxyAgent } from "https-proxy-agent";
-import { HttpProxyAgent } from "http-proxy-agent";
-
-// ---------------------------------------------------------------------------
-// Proxy support — required in sandboxed/container environments
-// ---------------------------------------------------------------------------
-
-const PROXY_URL = process.env.https_proxy || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.HTTP_PROXY || "";
-if (PROXY_URL) {
-  axios.defaults.httpsAgent = new HttpsProxyAgent(PROXY_URL);
-  axios.defaults.httpAgent = new HttpProxyAgent(PROXY_URL);
-  axios.defaults.proxy = false; // let the agents handle proxying
-  console.log(`[proxy] Using proxy for HTTP+HTTPS: ${PROXY_URL.slice(0, 50)}...`);
-}
 
 // ---------------------------------------------------------------------------
 // Config & types
