@@ -57,7 +57,11 @@ interface DryScoreAnalysis {
   reasoning: string;
   af_minibar: boolean;
   zero_proof_pairing: boolean;
+  status?: string;
 }
+
+const DRINK_KEYWORDS =
+  /cocktail|mocktail|beverage|drink|spirits?|seedlip|lyre|zero.?proof|non.?alcoholic|NA\b|juice|kombucha|shrub|infusion|tonic|soda|elixir|cordial|aperitif|wine|beer|menu/i;
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -83,6 +87,11 @@ const MENU_PATH_PATTERNS = [
   /food-and-drink/i,
   /food-drink/i,
   /dining/i,
+  /booklet/i,
+  /list/i,
+  /cellar/i,
+  /pairing/i,
+  /temperance/i,
 ];
 
 const MAX_VENUES = 20;
@@ -133,7 +142,12 @@ async function searchPlaces(
   city: string,
   category: string
 ): Promise<PlaceResult[]> {
-  const query = `${CATEGORY_KEYWORDS[category.toLowerCase()]} in ${city}`;
+  const baseQuery = CATEGORY_KEYWORDS[category.toLowerCase()];
+  const qualityKeywords =
+    category.toLowerCase() === "restaurant" || category.toLowerCase() === "hotel"
+      ? " Michelin star fine dining zero proof"
+      : "";
+  const query = `${baseQuery}${qualityKeywords} in ${city}`;
   console.log(`[places] Searching: "${query}"`);
 
   let data: any;
@@ -216,7 +230,7 @@ async function getPlaceWebsite(placeId: string): Promise<string | null> {
  * by crawling the homepage for links matching known menu patterns.
  * Falls back to the homepage itself if no menu link is found.
  */
-async function findMenuUrl(websiteUrl: string, logPrefix: string): Promise<string> {
+async function findMenuUrl(websiteUrl: string, logPrefix: string): Promise<{ url: string; subPageText: string | null }> {
   try {
     const { data: html } = await axios.get(websiteUrl, {
       timeout: SCRAPE_TIMEOUT_MS,
@@ -240,8 +254,16 @@ async function findMenuUrl(websiteUrl: string, logPrefix: string): Promise<strin
       const fullUrl = resolveUrl(link.href, base);
       if (!fullUrl) continue;
 
-      // Skip PDF links — we can't parse them reliably
-      if (/\.pdf(\?|$)/i.test(fullUrl)) continue;
+      // Follow PDF links — they often contain the actual drinks menu
+      if (/\.pdf(\?|$)/i.test(fullUrl)) {
+        const matchesPath = MENU_PATH_PATTERNS.some((p) => p.test(fullUrl));
+        const matchesText = /menu|drinks|cocktail|beverage|zero.?proof|mocktail/i.test(link.text);
+        if (matchesPath || matchesText) {
+          console.log(`${logPrefix}[menu] Found PDF menu link: ${fullUrl}`);
+          return { url: fullUrl, subPageText: null };
+        }
+        continue;
+      }
 
       const matchesPath = MENU_PATH_PATTERNS.some((p) => p.test(fullUrl));
       const matchesText = /menu|drinks|cocktail|beverage|zero.?proof|mocktail/i.test(
@@ -250,14 +272,22 @@ async function findMenuUrl(websiteUrl: string, logPrefix: string): Promise<strin
 
       if (matchesPath || matchesText) {
         console.log(`${logPrefix}[menu] Found menu link: ${fullUrl}`);
-        return fullUrl;
+
+        // If link text contains 'Menu' or 'Drinks', fetch the sub-page eagerly
+        if (/menu|drinks/i.test(link.text)) {
+          console.log(`${logPrefix}[menu] Fetching sub-page for deeper content...`);
+          const subText = await scrapePageText(fullUrl, logPrefix);
+          return { url: fullUrl, subPageText: subText };
+        }
+
+        return { url: fullUrl, subPageText: null };
       }
     }
   } catch {
     // If homepage fetch fails, we'll just use the homepage URL
   }
 
-  return websiteUrl;
+  return { url: websiteUrl, subPageText: null };
 }
 
 function resolveUrl(href: string, base: URL): string | null {
@@ -335,7 +365,11 @@ Assign a Dry Score (1-5) based on these criteria — award +1 for each that appl
 • More than 5 unique mocktails or NA cocktails [+1]
 • Sophisticated descriptions (not just "juice mix" or "virgin mojito") [+1]
 
-If the page content has no discernible drink/menu information, assign a score of 0.
+IMPORTANT: "House-made infusions" and "Shrubs" (drinking vinegar preparations) count as sophisticated descriptions for the last criterion. Venues that make their own infusions, shrubs, or cordials are demonstrating real NA craft — do not penalize them.
+
+If the page content has no discernible drink/menu information, respond with:
+{"status": "INSUFFICIENT_DATA"}
+Do NOT assign a low score when data is simply missing — only score what you can actually evaluate.
 
 Also determine:
 • af_minibar: Does the venue mention an alcohol-free minibar or in-room NA beverage selection? (true/false)
@@ -359,6 +393,19 @@ async function analyzeDryScore(
   menuText: string,
   venueName: string
 ): Promise<DryScoreAnalysis> {
+  // Guardrail: if text is too thin or lacks drink keywords, skip the LLM entirely
+  if (menuText.length < 500 || !DRINK_KEYWORDS.test(menuText)) {
+    console.log(`  [llm] INSUFFICIENT_DATA — text too short (${menuText.length} chars) or no drink keywords found`);
+    return {
+      dry_score: 0,
+      top_na_drink: "N/A",
+      reasoning: "INSUFFICIENT_DATA",
+      af_minibar: false,
+      zero_proof_pairing: false,
+      status: "INSUFFICIENT_DATA",
+    };
+  }
+
   const prompt = buildAnalysisPrompt(menuText, venueName);
 
   const response = await anthropic.messages.create(
@@ -381,6 +428,20 @@ async function analyzeDryScore(
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON found");
     const parsed = JSON.parse(jsonMatch[0]) as DryScoreAnalysis;
+
+    // Handle LLM returning INSUFFICIENT_DATA
+    if (parsed.status === "INSUFFICIENT_DATA") {
+      console.log(`  [llm] LLM returned INSUFFICIENT_DATA for ${venueName}`);
+      return {
+        dry_score: 0,
+        top_na_drink: "N/A",
+        reasoning: "INSUFFICIENT_DATA",
+        af_minibar: false,
+        zero_proof_pairing: false,
+        status: "INSUFFICIENT_DATA",
+      };
+    }
+
     return {
       dry_score: Math.max(0, Math.min(5, Math.round(parsed.dry_score))),
       top_na_drink: parsed.top_na_drink || "N/A",
@@ -455,12 +516,15 @@ async function processVenue(
   console.log(`${prefix}[web] ${websiteUrl}`);
 
   // 2. Find menu page
-  const menuUrl = await findMenuUrl(websiteUrl, prefix);
+  const { url: menuUrl, subPageText } = await findMenuUrl(websiteUrl, prefix);
   const foundMenuPage = menuUrl !== websiteUrl;
 
-  // 3. Scrape menu page text
-  console.log(`${prefix}[menu] Scraping: ${menuUrl}`);
-  const pageText = await scrapePageText(menuUrl, prefix);
+  // 3. Scrape menu page text (use pre-fetched sub-page text if available)
+  let pageText = subPageText;
+  if (!pageText) {
+    console.log(`${prefix}[menu] Scraping: ${menuUrl}`);
+    pageText = await scrapePageText(menuUrl, prefix);
+  }
   if (!pageText || pageText.length < 50) {
     console.log(`${prefix}[skip] Insufficient page content (${pageText?.length ?? 0} chars)`);
     return {
@@ -481,6 +545,7 @@ async function processVenue(
   console.log(`${prefix}[scrape] Got ${pageText.length} chars of text`);
 
   // 4. LLM analysis
+  console.log(`${prefix}[debug] URL sent to LLM: ${menuUrl}`);
   const analysis = await analyzeDryScore(anthropic, pageText, place.name);
   console.log(
     `${prefix}[score] Dry Score: ${analysis.dry_score}/5 — Top drink: ${analysis.top_na_drink}`
