@@ -112,13 +112,16 @@ function parseCliArgs(): { city: string; category: string; country: string } {
     process.exit(1);
   }
 
-  const category = values.category.toLowerCase();
-  if (!CATEGORY_KEYWORDS[category]) {
+  const categoryKey = values.category.toLowerCase();
+  if (!CATEGORY_KEYWORDS[categoryKey]) {
     console.error(
       `Invalid category "${values.category}". Must be one of: Hotel, Restaurant, Bar`
     );
     process.exit(1);
   }
+
+  // Capitalize for Supabase check constraint (Hotel, Restaurant, Bar)
+  const category = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
 
   return { city: values.city, category, country: values.country ?? "" };
 }
@@ -131,7 +134,7 @@ async function searchPlaces(
   city: string,
   category: string
 ): Promise<PlaceResult[]> {
-  const query = `${CATEGORY_KEYWORDS[category]} in ${city}`;
+  const query = `${CATEGORY_KEYWORDS[category.toLowerCase()]} in ${city}`;
   console.log(`[places] Searching: "${query}"`);
 
   let data: any;
