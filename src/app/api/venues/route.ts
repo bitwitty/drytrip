@@ -31,10 +31,8 @@ export async function GET() {
     }
   }
 
-  // Filter to scored venues and sort descending
-  const scored = allVenues
-    .filter((v) => v.dry_score > 0)
-    .sort((a, b) => b.dry_score - a.dry_score);
+  // Sort by dry_score descending (show all venues)
+  allVenues.sort((a, b) => b.dry_score - a.dry_score);
 
-  return NextResponse.json(scored);
+  return NextResponse.json(allVenues);
 }
