@@ -49,7 +49,6 @@ interface VenueResult {
   image_url: string | null;
   af_minibar: boolean;
   zero_proof_pairing: boolean;
-  status: string;
 }
 
 interface DryScoreAnalysis {
@@ -477,7 +476,6 @@ async function processVenue(
       image_url: place.photo_uri ?? null,
       af_minibar: false,
       zero_proof_pairing: false,
-      status: "scraped",
     };
   }
   console.log(`${prefix}[scrape] Got ${pageText.length} chars of text`);
@@ -504,7 +502,6 @@ async function processVenue(
     image_url: place.photo_uri ?? null,
     af_minibar: analysis.af_minibar,
     zero_proof_pairing: analysis.zero_proof_pairing,
-    status: "scraped",
   };
 }
 
