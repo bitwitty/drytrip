@@ -22,6 +22,7 @@ import * as cheerio from "cheerio";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { parseArgs } from "node:util";
+import pdfParse from "pdf-parse";
 
 // ---------------------------------------------------------------------------
 // Config & types
@@ -93,6 +94,16 @@ const MENU_PATH_PATTERNS = [
   /pairing/i,
   /temperance/i,
 ];
+
+// ---------------------------------------------------------------------------
+// Known venues — override menu URL for sites where auto-discovery fails
+// Key: domain (matched against venue website URL)
+// Value: direct menu URL (can be PDF or HTML)
+// ---------------------------------------------------------------------------
+
+const KNOWN_VENUES: Record<string, string> = {
+  "lyaness.com": "https://lyaness.com/wp-content/uploads/2024/10/Lyaness-Menu-Booklet-Oct-24.pdf",
+};
 
 const MAX_VENUES = 20;
 const SCRAPE_TIMEOUT_MS = 10_000;
@@ -316,13 +327,36 @@ function resolveUrl(href: string, base: URL): string | null {
 }
 
 /**
+ * Extract text from a PDF URL using pdf-parse.
+ */
+async function scrapePdfText(url: string, logPrefix: string): Promise<string | null> {
+  try {
+    console.log(`${logPrefix}[pdf] Downloading PDF: ${url}`);
+    const { data } = await axios.get(url, {
+      timeout: SCRAPE_TIMEOUT_MS * 2,
+      headers: BROWSER_HEADERS,
+      maxRedirects: 5,
+      responseType: "arraybuffer",
+    });
+    const pdf = await pdfParse(Buffer.from(data));
+    const text = pdf.text.replace(/\s+/g, " ").trim();
+    console.log(`${logPrefix}[pdf] Extracted ${text.length} chars from PDF`);
+    return text.slice(0, 12_000) || null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.log(`${logPrefix}[pdf] Failed to parse PDF ${url}: ${message}`);
+    return null;
+  }
+}
+
+/**
  * Scrape the text content from a URL, stripping HTML.
+ * Handles both HTML pages and PDF files.
  */
 async function scrapePageText(url: string, logPrefix: string): Promise<string | null> {
-  // Skip PDF URLs entirely — cheerio can't parse binary content
+  // Route PDF URLs to the PDF extractor
   if (/\.pdf(\?|$)/i.test(url)) {
-    console.log(`${logPrefix}[scrape] Skipping PDF URL: ${url}`);
-    return null;
+    return scrapePdfText(url, logPrefix);
   }
 
   try {
@@ -330,7 +364,7 @@ async function scrapePageText(url: string, logPrefix: string): Promise<string | 
       timeout: SCRAPE_TIMEOUT_MS,
       headers: BROWSER_HEADERS,
       maxRedirects: 5,
-      responseType: "text",
+      responseType: "arraybuffer",
     });
 
     // Detect binary/PDF content that slipped through
@@ -339,11 +373,14 @@ async function scrapePageText(url: string, logPrefix: string): Promise<string | 
       contentType.includes("application/pdf") ||
       contentType.includes("application/octet-stream")
     ) {
-      console.log(`${logPrefix}[scrape] Skipping binary content from ${url}`);
-      return null;
+      console.log(`${logPrefix}[scrape] Detected PDF content-type, routing to PDF parser`);
+      const pdf = await pdfParse(Buffer.from(html));
+      const text = pdf.text.replace(/\s+/g, " ").trim();
+      return text.slice(0, 12_000) || null;
     }
 
-    const $ = cheerio.load(html);
+    const htmlStr = Buffer.from(html).toString("utf-8");
+    const $ = cheerio.load(htmlStr);
 
     // Remove scripts, styles, nav, footer to reduce noise
     $("script, style, nav, footer, header, noscript, iframe").remove();
@@ -550,8 +587,20 @@ async function processVenue(
   }
   console.log(`${prefix}[web] ${websiteUrl}`);
 
-  // 2. Find menu page
-  const { url: menuUrl, subPageText } = await findMenuUrl(websiteUrl, prefix);
+  // 2. Check known venues override before crawling
+  let knownMenuUrl: string | null = null;
+  try {
+    const domain = new URL(websiteUrl).hostname.replace(/^www\./, "");
+    if (KNOWN_VENUES[domain]) {
+      knownMenuUrl = KNOWN_VENUES[domain];
+      console.log(`${prefix}[known] Override menu URL: ${knownMenuUrl}`);
+    }
+  } catch { /* invalid URL, continue normally */ }
+
+  // 3. Find menu page (skip crawl if we have a known override)
+  const { url: menuUrl, subPageText } = knownMenuUrl
+    ? { url: knownMenuUrl, subPageText: null }
+    : await findMenuUrl(websiteUrl, prefix);
   const foundMenuPage = menuUrl !== websiteUrl;
 
   // 3. Scrape menu page text (use pre-fetched sub-page text if available)
