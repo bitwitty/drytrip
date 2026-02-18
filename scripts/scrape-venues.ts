@@ -13,7 +13,7 @@
  *   GOOGLE_PLACES_API_KEY
  *   ANTHROPIC_API_KEY
  *   NEXT_PUBLIC_SUPABASE_URL      (optional — skips DB upsert if missing)
- *   NEXT_PUBLIC_SUPABASE_ANON_KEY (optional — skips DB upsert if missing)
+ *   SUPABASE_SERVICE_ROLE_KEY     (optional — needed for DB upsert, bypasses RLS)
  */
 
 import "dotenv/config";
@@ -66,7 +66,7 @@ const DRINK_KEYWORDS =
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const PLACES_TEXT_SEARCH_URL =
   "https://places.googleapis.com/v1/places:searchText";
@@ -418,14 +418,39 @@ async function analyzeDryScore(
 
   const prompt = buildAnalysisPrompt(menuText, venueName);
 
-  const response = await anthropic.messages.create(
-    {
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 300,
-      messages: [{ role: "user", content: prompt }],
-    },
-    { timeout: API_TIMEOUT_MS },
-  );
+  // Retry with exponential backoff on rate limit (429) errors
+  let response: Anthropic.Message | undefined;
+  const MAX_RETRIES = 5;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      response = await anthropic.messages.create(
+        {
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 300,
+          messages: [{ role: "user", content: prompt }],
+        },
+        { timeout: API_TIMEOUT_MS },
+      );
+      break;
+    } catch (err: unknown) {
+      const apiErr = err as any;
+      const isRateLimit =
+        apiErr?.status === 429 ||
+        apiErr?.error?.type === "rate_limit_error" ||
+        apiErr?.message?.includes("rate_limit");
+      if (isRateLimit && attempt < MAX_RETRIES) {
+        const backoffMs = Math.min(2000 * Math.pow(2, attempt), 60_000);
+        console.log(`  [llm] Rate limited (attempt ${attempt + 1}/${MAX_RETRIES + 1}), waiting ${backoffMs / 1000}s...`);
+        await sleep(backoffMs);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  if (!response) {
+    return { dry_score: 0, top_na_drink: "N/A", reasoning: "LLM request failed after retries", af_minibar: false, zero_proof_pairing: false };
+  }
 
   const content =
     response.content[0]?.type === "text" ? response.content[0].text : null;
@@ -581,12 +606,12 @@ async function processVenue(
 }
 
 async function upsertToSupabase(venues: VenueResult[]): Promise<void> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.log("\n[supabase] Skipping — SUPABASE_URL or SUPABASE_ANON_KEY not set");
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.log("\n[supabase] Skipping — SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set");
     return;
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   console.log(`\n[supabase] Upserting ${venues.length} venues...`);
 
