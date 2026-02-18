@@ -9,6 +9,7 @@ import {
   Search,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { supabase } from "@/lib/supabase";
 import type { Venue } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
@@ -33,17 +34,20 @@ export default function DirectoryPage() {
     return ["All Cities", ...unique];
   }, [venues]);
 
-  /* Fetch venues from local API (reads scraped JSON files) */
+  /* Fetch published venues from Supabase */
   useEffect(() => {
     async function fetchVenues() {
       try {
-        const res = await fetch("/api/venues");
-        if (res.ok) {
-          const data: Venue[] = await res.json();
-          setVenues(data);
+        const { data, error } = await supabase
+          .from("venues")
+          .select("*")
+          .order("dry_score", { ascending: false });
+
+        if (!error && data) {
+          setVenues(data as Venue[]);
         }
       } catch {
-        // API may not be available — handled by empty state
+        // Supabase may not be configured yet — handled by empty state
       }
       setLoading(false);
     }
