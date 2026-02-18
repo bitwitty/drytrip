@@ -102,7 +102,7 @@ const MENU_PATH_PATTERNS = [
 // ---------------------------------------------------------------------------
 
 const KNOWN_VENUES: Record<string, string> = {
-  "lyaness.com": "https://lyaness.com/wp-content/uploads/2024/10/Lyaness-Menu-Booklet-Oct-24.pdf",
+  "lyaness.com": "https://www.seacontainerslondon.com/manage/wp-content/uploads/Lyaness-menu-current.pdf",
 };
 
 const MAX_VENUES = 20;
