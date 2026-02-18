@@ -36,7 +36,7 @@ export default function DirectoryPage() {
         const { data, error } = await supabase
           .from("venues")
           .select("*")
-          .eq("status", "Published")
+          .gt("dry_score", 0)
           .order("dry_score", { ascending: false });
 
         if (!error && data) {
