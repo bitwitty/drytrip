@@ -4,8 +4,8 @@
   --color-linen: #F9F7F2;
   --color-forest: #1B3022;
   --color-sandstone: #D9C5B2;
-  --font-serif: "Georgia", "Times New Roman", serif;
-  --font-sans: "Helvetica Neue", "Arial", system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", "Georgia", "Times New Roman", serif;
+  --font-sans: "Montserrat", "Helvetica Neue", "Arial", system-ui, sans-serif;
 }
 
 body {
