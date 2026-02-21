@@ -1,10 +1,29 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import PostHogProvider from "@/components/PostHogProvider";
 
 export const metadata: Metadata = {
-  title: "Dry Trip — Luxury Travel at Full Resolution",
+  title: {
+    default: "Dry Trip — Clear-headed luxury travel",
+    template: "%s | Dry Trip",
+  },
   description:
-    "The first travel directory and AI planner built for clear-headed luxury.",
+    "AI-powered trip planning backed by verified alcohol-free venue data. Browse the London directory and plan your next trip.",
+  metadataBase: new URL("https://drytrip.co"),
+  openGraph: {
+    type: "website",
+    siteName: "Dry Trip",
+    title: "Dry Trip — Clear-headed luxury travel",
+    description:
+      "AI-powered trip planning backed by verified alcohol-free venue data. No guesswork. No judgment. No hangovers.",
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dry Trip — Clear-headed luxury travel",
+    description:
+      "AI-powered trip planning backed by verified alcohol-free venue data.",
+  },
   icons: {
     icon: "/favicon.svg",
   },
@@ -29,7 +48,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <PostHogProvider>{children}</PostHogProvider>
+      </body>
     </html>
   );
 }

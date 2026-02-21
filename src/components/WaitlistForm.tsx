@@ -2,17 +2,14 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Variant } from "@/lib/ab";
 import { ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 
 interface WaitlistFormProps {
-  variant: Variant;
   buttonText: string;
   successMessage: string;
 }
 
 export default function WaitlistForm({
-  variant,
   buttonText,
   successMessage,
 }: WaitlistFormProps) {
@@ -29,7 +26,7 @@ export default function WaitlistForm({
 
     const { error } = await supabase
       .from("waitlist")
-      .insert([{ email: email.trim().toLowerCase(), variant }]);
+      .insert([{ email: email.trim().toLowerCase(), variant: "A" }]);
 
     if (error) {
       if (error.code === "23505") {
