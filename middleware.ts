@@ -13,9 +13,10 @@ export function middleware(request: NextRequest) {
   // If no password is configured, let everything through
   if (!PASSWORD) return NextResponse.next();
 
-  // Skip password gate for API routes, static files, and the auth endpoint
+  // Skip password gate for public pages, API routes, static files, and the auth endpoint
   const { pathname } = request.nextUrl;
   if (
+    pathname === "/" ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
