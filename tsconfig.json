@@ -4,6 +4,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
+    "types": ["node", "react", "react-dom", "mapbox-gl"],
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -30,5 +31,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "scripts", "node_modules/@types/mapbox__point-geometry"]
+  "exclude": ["node_modules", "scripts"]
 }
