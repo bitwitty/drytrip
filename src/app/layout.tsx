@@ -15,8 +15,9 @@ export const metadata: Metadata = {
     siteName: "Dry Trip",
     title: "Dry Trip — Clear-headed luxury travel",
     description:
-      "AI-powered trip planning backed by verified alcohol-free venue data. No guesswork. No judgment. No hangovers.",
+      "Luxury travel rated for the alcohol-free experience. Verified venues, AI trip planning, zero compromises.",
     locale: "en_GB",
+    images: [{ url: "/api/og", width: 1200, height: 630, alt: "Dry Trip" }],
   },
   twitter: {
     card: "summary_large_image",

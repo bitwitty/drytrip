@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:london": "tsx scripts/seed-london.ts",
+    "pipeline": "tsx scripts/pipeline.ts",
     "add:venue": "tsx scripts/add-venue.ts",
-    "backfill:coords": "tsx scripts/backfill-coords.ts"
+    "backfill:coords": "tsx scripts/backfill-coords.ts",
+    "enrich": "tsx scripts/enrich.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.45",

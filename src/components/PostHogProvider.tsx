@@ -16,7 +16,7 @@ export default function PostHogProvider({
     posthog.init(key, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com",
       person_profiles: "identified_only",
-      capture_pageview: false, // Handled by PostHog auto-capture
+      capture_pageview: true,
     });
   }, []);
 

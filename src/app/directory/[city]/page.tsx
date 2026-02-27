@@ -281,7 +281,13 @@ export default function CityDirectoryPage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((venue) => (
-              <DirectoryVenueCard key={venue.id} venue={venue} />
+              <DirectoryVenueCard key={venue.id} venue={venue} onClickVenue={() => {
+                posthog?.capture("directory_venue_clicked", {
+                  slug: venue.slug,
+                  name: venue.name,
+                  category: venue.category,
+                });
+              }} />
             ))}
 
             {/* CTA card */}
@@ -352,9 +358,9 @@ function FilterGroup({
 /*  Venue Card                                                         */
 /* ================================================================== */
 
-function DirectoryVenueCard({ venue }: { venue: Venue }) {
+function DirectoryVenueCard({ venue, onClickVenue }: { venue: Venue; onClickVenue?: () => void }) {
   return (
-    <Link href={`/venues/${venue.slug}`}>
+    <Link href={`/venues/${venue.slug}`} onClick={onClickVenue}>
       <article className="group overflow-hidden rounded-2xl border border-sandstone/40 bg-white shadow-sm transition-shadow hover:shadow-md">
         {/* Card hero — image if available, typography fallback */}
         <div className="relative h-44 overflow-hidden bg-forest">

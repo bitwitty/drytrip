@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # Development server at localhost:3000
 npm run build        # Production build
 npm run lint         # ESLint check
-npm run seed:london  # Seed London venues from JSON files (requires env vars)
+npm run pipeline     # Discover & score venues: npm run pipeline london Bar|Hotel|Restaurant|--all
 npm run add:venue    # Add a venue manually: npm run add:venue "Name" "City" "Category"
 ```
 
@@ -76,9 +76,9 @@ Brand tokens in `src/app/globals.css`:
 - Fonts: Cormorant Garamond (serif/display), Montserrat (sans/UI)
 
 ### Venue Pipeline
-- `scripts/seed-london.ts` — loads existing London JSON data, enriches via Claude, upserts to Supabase
+- `scripts/pipeline.ts` — hybrid discovery pipeline: Google Places API → website scraping → review mining → Claude scoring → Supabase upsert as Draft
 - `scripts/add-venue.ts` — manually add a venue by name, Claude researches and generates all fields
-- `scripts/output/` — 17 JSON files with venue data from Google Places API
+- `scripts/backfill-coords.ts` — backfill lat/lng for Published venues missing coordinates
 - `scripts/migrate-venues.sql` — full schema migration (run in Supabase SQL Editor)
 
 ### A/B Testing

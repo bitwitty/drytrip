@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { Droplets } from "lucide-react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "How Dry Scores Work",
+  description:
+    "Our 1–5 rating system for the quality of a venue's alcohol-free experience.",
+};
 
 const scores = [
   {

@@ -6,6 +6,7 @@ import { supabase, supabaseAdmin } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import VenueMapClient from "@/components/VenueMapClient";
+import VenueDetailTracker from "@/components/VenueDetailTracker";
 import type { Venue } from "@/lib/types";
 
 export const revalidate = 86400; // revalidate venue pages once per day
@@ -166,6 +167,7 @@ export default async function VenueDetailPage({
 
   return (
     <div className="min-h-screen bg-linen">
+      <VenueDetailTracker slug={venue.slug} name={venue.name} category={venue.category} />
       <Nav />
 
       {/* Dark typographic hero */}
