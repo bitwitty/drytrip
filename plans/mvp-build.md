@@ -2,7 +2,7 @@
 planStatus:
   planId: plan-dry-trip-mvp
   title: Dry Trip MVP Build
-  status: in-development
+  status: ready-to-launch
   planType: initiative
   priority: high
   owner: kat
@@ -17,10 +17,9 @@ planStatus:
     - multi-city
     - brand
   created: "2026-02-18"
-  updated: "2026-02-19T12:00:00.000Z"
-  progress: 75
+  updated: "2026-03-08T00:00:00.000Z"
+  progress: 98
 ---
-
 # Dry Trip MVP Build Plan
 
 > Build an AI-powered luxury travel planner for alcohol-free experiences. Users chat with an AI backed by verified London venue data, browse an interactive directory with map, and click through to book.
@@ -40,7 +39,7 @@ A working product where a user can:
 ## Key Decisions
 
 | Decision | Choice | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | Launch city | London only | Existing data for other cities is unreliable. Commit fully to one city done well. Architecture supports multi-city expansion. |
 | Data approach | Build a proper pipeline before launch | Old scraper produced 83% garbage. New pipeline: Google Places + menu/review scraping + Claude scoring + manual additions. |
 | Pipeline output | Drafts written to Supabase | Kat reviews via visual admin page, edits in Supabase dashboard, flips to Published. |
@@ -165,7 +164,7 @@ Schema-only. No review UI in this build. Exists so the data model is ready when 
 **Decision: Launch without venue photos. Restraint is luxury.**
 
 | Surface | Approach | Details |
-|---|---|---|
+| --- | --- | --- |
 | Directory cards | Typography-only | Big serif name is the hero. Category label in tracked-out uppercase. Generous padding. |
 | Venue detail pages | Dark typographic hero | Full-width forest green band with linen type. Dry Score prominent. |
 | AI chat cards | Typography-only, always | Compact inline format: category tag, name, score, top drink. Concierge tone. |
@@ -181,7 +180,7 @@ Schema-only. No review UI in this build. Exists so the data model is ready when 
 
 ## Build Phases
 
-### Phase 0: Venue Research Pipeline
+### Phase 0: Venue Research Pipeline ✓
 **Goal:** Build a reliable pipeline that discovers, scrapes, and scores venues. Curate ~30-40 publishable London venues.
 **Estimate:** 3-4 days
 **Status:** DONE
@@ -248,10 +247,10 @@ UPDATE venues SET last_verified = CURRENT_DATE, verified_by = 'kat', source = 'p
 
 ---
 
-### Phase 1: Core Product Pages
+### Phase 1: Core Product Pages ✓
 **Goal:** Build the pages users interact with, including the interactive map.
 **Estimate:** 4-6 days (includes map)
-**Status:** IN PROGRESS (1.1-1.7 done, 1.8-1.10 remaining)
+**Status:** DONE
 
 #### 1.1 Extract Shared Layout + Design Tokens
 **Status:** DONE
@@ -276,7 +275,7 @@ Install PostHog and add provider wrapper.
 Removed. Variant A copy is permanent. Page server-renders for SEO.
 
 #### 1.3 Directory Page
-**Status:** DONE → NEEDS UPDATE (city-slug routing + map)
+**Status:** DONE
 
 Current state: `/directory` with category filter + sort by Dry Score. Needs to become `/directory/[city]` with city selector and map.
 
@@ -290,7 +289,7 @@ Current state: `/directory` with category filter + sort by Dry Score. Needs to b
 - CTA card at end of grid: "Not finding what you need? Plan a custom trip with our AI."
 
 #### 1.4 Venue Detail Pages (`/venues/[slug]`)
-**Status:** DONE → NEEDS UPDATE (mini-map + verified badge + proximity)
+**Status:** DONE (includes mini-map, verified badge, proximity-based related venues)
 
 Server Component with `generateStaticParams`. `revalidate = 3600`.
 
@@ -324,7 +323,7 @@ What is a Dry Score, how venues are rated, data collection methods, how to submi
 All original Phase 1 checklist items passed.
 
 #### 1.8 City-Slug Routing
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Files:**
 - `src/app/directory/[city]/page.tsx` (NEW — move directory logic here)
@@ -342,7 +341,7 @@ All original Phase 1 checklist items passed.
 - System prompt references "the provided city's venues" instead of hardcoding London
 
 #### 1.9 Brand Copy Updates
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Landing page hero** (`src/app/page.tsx`):
 - Old: "Travel at full resolution."
@@ -363,8 +362,8 @@ All original Phase 1 checklist items passed.
 - New: **"London Venues"** with subtitle "Rated for the quality of their alcohol-free experience."
 
 #### 1.10 Interactive Map (Phase 1.8 from Addendum)
-**Status:** NOT STARTED
-**Dependencies:** Phase 0 coords backfilled (0.6), city-slug routing done (1.8)
+**Status:** DONE
+**Dependencies:** Phase 0 coords backfilled (0.6) ✓, city-slug routing done (1.8) ✓
 
 **Install:**
 ```bash
@@ -377,7 +376,7 @@ Add `NEXT_PUBLIC_MAPBOX_TOKEN` to `.env` and Vercel.
 **Mapbox Studio custom style** based on `light-v11`:
 - Land: linen-ish (#F5F2ED), Water: mist (#E8E4DD), Roads: sandstone/30, Labels: forest/40, Parks: sage/20
 
-**`src/components/VenueMap.tsx`:**
+**`src/components/VenueMap.tsx`****:**
 
 ```typescript
 interface VenueMapProps {
@@ -453,7 +452,7 @@ Features:
 
 ---
 
-### Phase 2: AI Trip Planner (The Core Product)
+### Phase 2: AI Trip Planner (The Core Product) ✓
 **Goal:** Build the conversational AI that makes Dry Trip a product, not a directory.
 **Estimate:** 3-4 days
 **Status:** DONE (2.1-2.3, 2.5 complete; 2.4 stretch deferred)
@@ -462,7 +461,7 @@ Features:
 **Status:** DONE
 
 #### 2.2 Create API Route (`/api/chat/route.ts`)
-**Status:** DONE → NEEDS UPDATE (city-aware filtering in Phase 1.8, tone shift in Phase 1.9)
+**Status:** DONE (city-aware filtering, tone shift applied)
 
 **Flow:**
 ```
@@ -495,7 +494,7 @@ Example tone: "Lyaness is your best bet on the South Bank — they have a proper
 **Venue rendering:** Vercel AI SDK tool calling → `recommend_venue` tool → frontend renders inline venue cards.
 
 #### 2.3 Create Chat UI (`/plan`)
-**Status:** DONE → NEEDS UPDATE (copy changes in Phase 1.9)
+**Status:** DONE (copy updated)
 
 **Empty state:**
 ```
@@ -546,9 +545,10 @@ Thumbs up/down on each AI response.
 
 ---
 
-### Phase 3: Launch Polish
+### Phase 3: Launch Polish ✓
 **Goal:** Update the landing page, add analytics, prepare for real users.
 **Estimate:** 1-2 days
+**Status:** DONE
 
 #### 3.1 Update Landing Page
 
@@ -629,42 +629,46 @@ Document all routes, AI chat architecture, pipeline, map setup, env vars.
 
 ---
 
-## Current Codebase State
+## Current Codebase State (Updated 2026-03-08)
 
-| Feature | Status | What Remains |
-|---|---|---|
-| Pipeline + data (Phase 0) | DONE | Backfill coords (0.6), set verification data (0.7) |
-| Shared layout (1.1) | DONE | — |
-| Kill A/B (1.2) | DONE | — |
-| Directory page (1.3) | DONE | Needs city-slug routing (1.8), map (1.10) |
-| Venue detail pages (1.4) | DONE | Needs mini-map (1.10), verified badge (1.10), proximity fix |
-| Booking CTAs (1.5) | DONE | — |
-| Methodology (1.6) | DONE | — |
-| City-slug routing (1.8) | NOT STARTED | — |
-| Brand copy updates (1.9) | NOT STARTED | — |
-| Interactive map (1.10) | NOT STARTED | Depends on 0.6, 1.8 |
-| AI chat API (2.1-2.2) | DONE | Needs city-aware filter (1.8), tone shift (1.9) |
-| Chat UI (2.3) | DONE | Needs copy update (1.9) |
-| Feedback (2.5) | DONE | — |
-| Admin review (3.2) | DONE | — |
-| Landing page update (3.1) | NOT STARTED | — |
-| Analytics audit (3.3) | NOT STARTED | — |
-| OG tags (3.5) | NOT STARTED | — |
+| Feature | Status | Notes |
+| --- | --- | --- |
+| Pipeline + data (Phase 0) | DONE | Pipeline, backfill coords, verification SQL all built |
+| Shared layout (1.1) | DONE | Nav, Footer, Logo, PostHog |
+| Kill A/B (1.2) | DONE | Variant A permanent |
+| Directory page (1.3) | DONE | Category/neighborhood/search filters, mobile toggle |
+| Venue detail pages (1.4) | DONE | Mini-map, verified badge, proximity-based related venues |
+| Booking CTAs (1.5) | DONE | Click tracking via /go/[id] |
+| Methodology (1.6) | DONE | Full 1-5 scale explanation |
+| City-slug routing (1.8) | DONE | /directory/[city], city selector, city-aware chat |
+| Brand copy updates (1.9) | DONE | "Clear-headed luxury travel", "Where to next?", "no sober" rule |
+| Interactive map (1.10) | DONE | Mapbox with clustering, category pins, popups, mini-maps |
+| AI chat API (2.1-2.2) | DONE | Streaming, city-aware, rate limiting, tone-shifted |
+| Chat UI (2.3) | DONE | Empty state, suggested prompts, trust strip |
+| Feedback (2.5) | DONE | Thumbs up/down with PostHog |
+| Admin review (3.2) | DONE | Password-protected, status filter, publish/reject |
+| Landing page update (3.1) | DONE | Hero, featured venue, venue count, newsletter |
+| Analytics audit (3.3) | DONE | PostHog events across all key actions |
+| OG tags (3.5) | DONE | Root layout + venue detail + dynamic OG image route |
+| CLAUDE.md (3.6) | DONE | Comprehensive documentation |
 
 ---
 
 ## Remaining Build Order
 
-Steps A and B can run in parallel. C depends on nothing. D depends on A (coords) and C (route structure).
+**All build phases are complete.** The MVP is code-complete and ready to launch.
 
-| Step | Phase | What | Estimate | Files |
-|---|---|---|---|---|
-| A | 0.6-0.7 | Backfill coords + set verification data | 0.5 day | `scripts/backfill-coords.ts`, `scripts/migrate-venues-addendum.sql`, `src/lib/types.ts` |
-| B | 1.9 | Brand copy + tone updates | 0.5 day | `page.tsx`, `plan/page.tsx`, `prompts.ts` |
-| C | 1.8 | City-slug routing | 0.5 day | `directory/[city]/page.tsx`, `directory/page.tsx`, `Nav.tsx`, `api/chat/route.ts` |
-| D | 1.10 | Interactive Mapbox map | 1.5-2 days | `VenueMap.tsx`, `directory/[city]/page.tsx`, `venues/[slug]/page.tsx`, `globals.css`, `package.json` |
-| E | 3.1, 3.3, 3.5 | Landing page, analytics, OG tags | 1 day | `page.tsx`, various |
-| **Total** | | | **4-4.5 days** | |
+### Pre-launch checklist
+
+| Task | Status | Notes |
+| --- | --- | --- |
+| Run verification SQL | DONE (2026-03-08) | 98 venues stamped: last_verified, verified_by, source |
+| Confirm Mapbox token in Vercel env vars | DONE (2026-03-08) | Confirmed in both local .env and Vercel Production |
+| Confirm all Vercel env vars | DONE (2026-03-08) | 9 vars confirmed: Supabase, Mapbox, Anthropic, Admin, Google Places |
+| Verify Published venue data quality in Supabase | TODO | Audit short_descriptions, vibe_tags, coords |
+| Set up affiliate links for top venues | BLOCKED | Booking.com rejected (saw waitlist page). Reapply after live launch. |
+| Vercel production deployment | TODO | Final deploy + custom domain |
+| Manual smoke test all pages | TODO | Directory, venue detail, AI chat, admin |
 
 ---
 
@@ -705,7 +709,7 @@ NEXT_PUBLIC_MAPBOX_STYLE=          # NEW: optional custom style URL
 ## Technical Decisions
 
 | Decision | Choice | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | AI SDK | Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) | Purpose-built for Next.js streaming chat |
 | LLM | Claude Sonnet | 15x cheaper than Opus, excellent for structured recs |
 | Venue cards in chat | Tool calling + rendered cards | Cards with booking CTAs shorten path to north star |

@@ -161,8 +161,19 @@ export default async function VenueDetailPage({
   // Build recommendation bullets from description
   const bullets: string[] = [];
   if (venue.description && venue.description !== "INSUFFICIENT_DATA") {
-    const sentences = venue.description.split(/\.\s+/).filter((s) => s.length > 20);
-    bullets.push(...sentences.slice(0, 3).map((s) => s.replace(/\.$/, "")));
+    // Descriptions use "• " bullet format — split on that first
+    if (venue.description.includes("•")) {
+      bullets.push(
+        ...venue.description
+          .split("•")
+          .map((s) => s.replace(/^[\s·]+|[\s]+$/g, ""))
+          .filter((s) => s.length > 10)
+          .slice(0, 3)
+      );
+    } else {
+      const sentences = venue.description.split(/\.\s+/).filter((s) => s.length > 20);
+      bullets.push(...sentences.slice(0, 3).map((s) => s.replace(/\.$/, "")));
+    }
   }
 
   return (
