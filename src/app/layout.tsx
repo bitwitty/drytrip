@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     template: "%s | Dry Trip",
   },
   description:
-    "AI-powered trip planning backed by verified alcohol-free venue data. Browse the London directory and plan your next trip.",
+    "AI-powered trip planning backed by verified alcohol-free venue data across 7 cities. Browse the directory and plan your next trip.",
   metadataBase: new URL("https://drytrip.co"),
   openGraph: {
     type: "website",

@@ -17,8 +17,8 @@ planStatus:
     - multi-city
     - brand
   created: "2026-02-18"
-  updated: "2026-03-08T00:00:00.000Z"
-  progress: 98
+  updated: "2026-03-09T00:00:00.000Z"
+  progress: 95
 ---
 # Dry Trip MVP Build Plan
 
@@ -629,7 +629,7 @@ Document all routes, AI chat architecture, pipeline, map setup, env vars.
 
 ---
 
-## Current Codebase State (Updated 2026-03-08)
+## Current Codebase State (Updated 2026-03-09)
 
 | Feature | Status | Notes |
 | --- | --- | --- |
@@ -643,20 +643,36 @@ Document all routes, AI chat architecture, pipeline, map setup, env vars.
 | City-slug routing (1.8) | DONE | /directory/[city], city selector, city-aware chat |
 | Brand copy updates (1.9) | DONE | "Clear-headed luxury travel", "Where to next?", "no sober" rule |
 | Interactive map (1.10) | DONE | Mapbox with clustering, category pins, popups, mini-maps |
-| AI chat API (2.1-2.2) | DONE | Streaming, city-aware, rate limiting, tone-shifted |
-| Chat UI (2.3) | DONE | Empty state, suggested prompts, trust strip |
+| AI chat API (2.1-2.2) | DONE | Streaming, all-cities context, rate limiting, tone-shifted |
+| Chat UI (2.3) | DONE | Empty state, suggested prompts, trust strip, markdown rendering fixed |
 | Feedback (2.5) | DONE | Thumbs up/down with PostHog |
 | Admin review (3.2) | DONE | Password-protected, status filter, publish/reject |
 | Landing page update (3.1) | DONE | Hero, featured venue, venue count, newsletter |
 | Analytics audit (3.3) | DONE | PostHog events across all key actions |
 | OG tags (3.5) | DONE | Root layout + venue detail + dynamic OG image route |
 | CLAUDE.md (3.6) | DONE | Comprehensive documentation |
+| **7-city expansion** | **DONE** | Berlin, Melbourne, LA, Copenhagen, Dubai added to London + NYC |
+| **Venue fact-check** | **DONE** | Perplexity deep research audit, 32 corrections applied |
+| **Description rewrite** | **DONE** | All 112 venues rewritten in human voice (anti-AI-slop) |
+
+### Venue Data Summary (2026-03-09)
+
+| City | Published | Score 5 | Score 4 | Score 3 | Notes |
+| --- | --- | --- | --- | --- | --- |
+| London | 63 | 3 | 29 | 31 | Strongest coverage. 52 venues at 3-4 not individually fact-checked by Perplexity. |
+| New York | 14 | 9 | 1 | 4 | Strong AF bar scene (Hekate, Mockingbird, No More Cafe, Soft Bar). |
+| Berlin | 9 | 3 | 3 | 3 | Fine dining NA pairings (CODA, Cookies Cream, Bricole). |
+| Copenhagen | 8 | 2 | 3 | 3 | World-class (Geranium, Jordnær). Thin on bars. |
+| Los Angeles | 7 | 1 | 2 | 4 | Free Spirited is the standout. Masiosare flagged as pop-up. |
+| Melbourne | 3 | 0 | 1 | 2 | Thin. Brunswick Aces + Navi + Sip & Enjoy (bottle shop). |
+| Dubai | 3 | 1 | 1 | 1 | NoLo + 11 Woodfire are strong. |
+| **Total** | **107** | | | | |
 
 ---
 
 ## Remaining Build Order
 
-**All build phases are complete.** The MVP is code-complete and ready to launch.
+**All build phases are complete.** The product is live at https://www.drytrip.co with 107 venues across 7 cities.
 
 ### Pre-launch checklist
 
@@ -665,10 +681,20 @@ Document all routes, AI chat architecture, pipeline, map setup, env vars.
 | Run verification SQL | DONE (2026-03-08) | 98 venues stamped: last_verified, verified_by, source |
 | Confirm Mapbox token in Vercel env vars | DONE (2026-03-08) | Confirmed in both local .env and Vercel Production |
 | Confirm all Vercel env vars | DONE (2026-03-08) | 9 vars confirmed: Supabase, Mapbox, Anthropic, Admin, Google Places |
-| Verify Published venue data quality in Supabase | TODO | Audit short_descriptions, vibe_tags, coords |
+| 7-city pipeline + publish + fact-check | DONE (2026-03-09) | Perplexity audit: 6 removed, 4 upgraded, 9 downgraded, 7 fact fixes |
+| Description rewrite (all 107 venues) | DONE (2026-03-09) | Human-voice bullets, anti-AI-slop prompt |
+| Chat API fix (UIMessage conversion) | DONE (2026-03-09) | Was broken — added convertToModelMessages() |
+| Chat heading markdown fix | DONE (2026-03-09) | Bold text in headings now renders properly |
 | Set up affiliate links for top venues | BLOCKED | Booking.com rejected (saw waitlist page). Reapply after live launch. |
-| Vercel production deployment | TODO | Final deploy + custom domain |
-| Manual smoke test all pages | TODO | Directory, venue detail, AI chat, admin |
+| Backfill lat/lng for new city venues | TODO | New city venues may be missing coords — map won't show pins without them |
+| SEO meta tags for city pages | TODO | /directory/berlin etc. need unique title/description meta tags |
+| OG images for city pages | TODO | Currently only root + venue detail have OG images |
+| Spot-check 52 London 3-4 venues | TODO | Perplexity only verified top-scoring London venues |
+| Thin city coverage (Melbourne 3, Dubai 3) | FLAG | Consider flagging in UI or running more targeted pipeline searches |
+| Mobile smoke test all 7 city pages | TODO | |
+| Methodology page update | TODO | Currently references London only — needs to reflect 7 cities |
+| Landing page venue count | TODO | Trust strip says "75+ verified venues" — should say "107 verified venues" or dynamic |
+| Run verification SQL for new cities | TODO | New city venues need last_verified, verified_by stamped |
 
 ---
 
@@ -689,20 +715,20 @@ NEXT_PUBLIC_MAPBOX_STYLE=          # NEW: optional custom style URL
 
 ## What's NOT in This Plan (Post-MVP)
 
-1. **Second city** (NYC or Melbourne) — proves the pipeline scales
+1. ~~**Second city** (NYC or Melbourne) — proves the pipeline scales~~ DONE — now 7 cities
 2. **Shareable itineraries with mini-map** — viral distribution
 3. **User reviews** — activates the `reviews` table stub
 4. **"Is this hotel sober-friendly?" checker** — embeddable viral tool
 5. **B2B dashboard** — hotels pay for Dry Score audits
 6. **Premium tier** ($9.99/month)
-7. **Multi-city trip planning** — "3 days London, 2 days Paris"
+7. ~~**Multi-city trip planning** — "3 days London, 2 days Paris"~~ DONE — chat context includes all cities
 8. User accounts / saved itineraries
 9. Booking API integrations
 10. Mobile app
 11. pgvector / semantic search
 12. AI chat itinerary map (stretch feature from addendum — defer to post-MVP)
-
-**City expansion trigger:** London has 40+ Published venues AND adding a city takes <1 day.
+13. **Deepen thin cities** — Melbourne (3) and Dubai (3) need more venues
+14. **Venue photos** — hire photographer or source from venues directly
 
 ---
 
