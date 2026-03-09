@@ -17,8 +17,8 @@ planStatus:
     - multi-city
     - brand
   created: "2026-02-18"
-  updated: "2026-03-09T00:00:00.000Z"
-  progress: 95
+  updated: "2026-03-09T12:00:00.000Z"
+  progress: 98
 ---
 # Dry Trip MVP Build Plan
 
@@ -685,16 +685,17 @@ Document all routes, AI chat architecture, pipeline, map setup, env vars.
 | Description rewrite (all 107 venues) | DONE (2026-03-09) | Human-voice bullets, anti-AI-slop prompt |
 | Chat API fix (UIMessage conversion) | DONE (2026-03-09) | Was broken — added convertToModelMessages() |
 | Chat heading markdown fix | DONE (2026-03-09) | Bold text in headings now renders properly |
+| SEO meta tags for city pages | DONE (2026-03-09) | Per-city title + description + OpenGraph for all 7 directory pages |
+| Backfill lat/lng for all venues | DONE (2026-03-09) | All 107 published venues have coordinates |
+| Landing page venue count | DONE (2026-03-09) | Dynamic from Supabase (auto-updates). Plan page updated to "107". |
+| Methodology page | DONE (2026-03-09) | Already city-agnostic — no London-specific references |
+| Mobile responsiveness fixes | DONE (2026-03-09) | Viewport meta, nav touch targets (44px+), responsive typography, trust strip gap |
 | Set up affiliate links for top venues | BLOCKED | Booking.com rejected (saw waitlist page). Reapply after live launch. |
-| Backfill lat/lng for new city venues | TODO | New city venues may be missing coords — map won't show pins without them |
-| SEO meta tags for city pages | TODO | /directory/berlin etc. need unique title/description meta tags |
 | OG images for city pages | TODO | Currently only root + venue detail have OG images |
 | Spot-check 52 London 3-4 venues | TODO | Perplexity only verified top-scoring London venues |
 | Thin city coverage (Melbourne 3, Dubai 3) | FLAG | Consider flagging in UI or running more targeted pipeline searches |
-| Mobile smoke test all 7 city pages | TODO | |
-| Methodology page update | TODO | Currently references London only — needs to reflect 7 cities |
-| Landing page venue count | TODO | Trust strip says "75+ verified venues" — should say "107 verified venues" or dynamic |
 | Run verification SQL for new cities | TODO | New city venues need last_verified, verified_by stamped |
+| Favicon / social share image | TODO | Need brand assets — currently using favicon.svg |
 
 ---
 

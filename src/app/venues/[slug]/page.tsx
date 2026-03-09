@@ -2,9 +2,11 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Droplets, Wine, MapPin, Globe, Clock, DollarSign, ExternalLink, CheckCircle } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import WaitlistForm from "@/components/WaitlistForm";
 import VenueMapClient from "@/components/VenueMapClient";
 import VenueDetailTracker from "@/components/VenueDetailTracker";
 import type { Venue } from "@/lib/types";
@@ -429,7 +431,7 @@ export default async function VenueDetailPage({
             <h2 className="font-serif text-2xl text-forest">
               {venue.neighborhood
                 ? `More in ${venue.neighborhood}`
-                : `More ${venue.category.toLowerCase()}s in London`}
+                : `More ${venue.category.toLowerCase()}s in ${venue.city}`}
             </h2>
             <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((v) => (
@@ -468,6 +470,43 @@ export default async function VenueDetailPage({
             </div>
           </section>
         )}
+
+        {/* AI planner CTA */}
+        <section className="mt-12 rounded-2xl border border-sandstone/30 bg-white p-6 sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linen">
+              <Sparkles className="size-5 text-forest" />
+            </div>
+            <div>
+              <h3 className="font-serif text-lg font-semibold text-forest">
+                Planning a trip around {venue.neighborhood ?? venue.city}?
+              </h3>
+              <p className="mt-1 text-sm text-forest/60">
+                Our AI concierge builds itineraries using venues like {venue.name} —
+                grounded in verified data, never hallucinated.
+              </p>
+              <Link
+                href="/plan"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-forest px-5 py-2.5 text-sm font-medium text-linen transition-opacity hover:opacity-90"
+              >
+                Plan Your Trip
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Newsletter signup */}
+        <section className="mt-8 mb-4">
+          <p className="text-sm font-medium text-forest/60">
+            Get weekly finds like these. No spam.
+          </p>
+          <div className="mt-3 max-w-md">
+            <WaitlistForm
+              buttonText="Subscribe"
+              successMessage="You're in. Weekly intel, starting soon."
+            />
+          </div>
+        </section>
       </div>
 
       <Footer />

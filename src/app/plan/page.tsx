@@ -13,9 +13,15 @@ import {
   ThumbsUp,
   ThumbsDown,
   RefreshCw,
+  Loader2,
+  ArrowRight,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+
+const FREE_MESSAGES = 2; // AI responses before email gate
+const STORAGE_KEY = "drytrip_email";
 
 const suggestedPrompts = [
   "Plan a 3-day trip to London with great nightlife",
@@ -37,8 +43,40 @@ export default function PlanPage() {
   const [input, setInput] = useState("");
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, "up" | "down">>({});
   const conversationStarted = useRef(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "loading" | "error">("idle");
+
+  // Restore email from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) setUserEmail(saved);
+  }, []);
 
   const isLoading = status === "streaming" || status === "submitted";
+  const assistantMessages = messages.filter((m) => m.role === "assistant").length;
+  const needsEmail = !userEmail && assistantMessages >= FREE_MESSAGES && !isLoading;
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const email = emailInput.trim().toLowerCase();
+    if (!email) return;
+    setEmailStatus("loading");
+
+    const { error } = await supabase
+      .from("waitlist")
+      .insert([{ email, variant: "plan" }]);
+
+    if (error && error.code !== "23505") {
+      setEmailStatus("error");
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, email);
+    setUserEmail(email);
+    setEmailStatus("idle");
+    posthog?.capture("email_gate_completed", { source: "plan" });
+  }
 
   // Track conversation depth milestones
   useEffect(() => {
@@ -215,27 +253,71 @@ export default function PlanPage() {
           </div>
         )}
 
-        {/* Chat input */}
+        {/* Chat input or email gate */}
         <div className="sticky bottom-0 bg-linen pb-6 pt-2">
-          <form
-            onSubmit={handleSubmit}
-            className="flex items-center gap-3 rounded-2xl border border-sandstone/50 bg-white px-4 py-3 shadow-sm transition-shadow focus-within:border-forest/30 focus-within:shadow-md"
-          >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Where do you want to go?"
-              className="flex-1 bg-transparent text-sm text-forest placeholder:text-forest/30 focus:outline-none"
-              disabled={isLoading}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-forest text-linen transition-opacity hover:opacity-90 disabled:opacity-30"
+          {needsEmail ? (
+            <div className="rounded-2xl border border-sandstone/50 bg-white px-5 py-5 shadow-sm">
+              <h3 className="font-serif text-lg font-semibold text-forest">
+                Your itinerary is taking shape.
+              </h3>
+              <p className="mt-1 text-sm text-forest/60">
+                Drop your email to keep planning — and get weekly intel on the
+                best alcohol-free travel finds.
+              </p>
+              <form onSubmit={handleEmailSubmit} className="mt-4 flex gap-3">
+                <input
+                  type="email"
+                  required
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="your@email.com"
+                  className="flex-1 rounded-lg border border-sandstone/50 bg-linen px-4 py-3 text-sm text-forest placeholder:text-forest/30 focus:border-forest/30 focus:outline-none focus:ring-1 focus:ring-forest/20"
+                />
+                <button
+                  type="submit"
+                  disabled={emailStatus === "loading"}
+                  className="flex items-center gap-2 rounded-lg bg-forest px-5 py-3 text-sm font-medium text-linen transition-opacity hover:opacity-90 disabled:opacity-60"
+                >
+                  {emailStatus === "loading" ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <>
+                      Continue Planning
+                      <ArrowRight className="size-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+              {emailStatus === "error" && (
+                <p className="mt-2 text-xs text-clay">
+                  Something went wrong. Please try again.
+                </p>
+              )}
+              <p className="mt-3 text-[11px] text-forest/30">
+                No spam. Unsubscribe anytime.
+              </p>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              className="flex items-center gap-3 rounded-2xl border border-sandstone/50 bg-white px-4 py-3 shadow-sm transition-shadow focus-within:border-forest/30 focus-within:shadow-md"
             >
-              <Send className="size-4" />
-            </button>
-          </form>
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Where do you want to go?"
+                className="flex-1 bg-transparent text-sm text-forest placeholder:text-forest/30 focus:outline-none"
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !input.trim()}
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-forest text-linen transition-opacity hover:opacity-90 disabled:opacity-30"
+              >
+                <Send className="size-4" />
+              </button>
+            </form>
+          )}
         </div>
       </main>
 
