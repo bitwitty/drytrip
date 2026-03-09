@@ -1,5 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText } from "ai";
+import { streamText, convertToModelMessages } from "ai";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TRIP_PLANNER_SYSTEM_PROMPT } from "@/lib/prompts";
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
   const result = streamText({
     model: anthropic("claude-sonnet-4-5-20250929"),
     system: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venues?.length ?? 0} verified venues across all cities)\n${venueContext}`,
-    messages,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
