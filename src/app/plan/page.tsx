@@ -257,15 +257,22 @@ function MessageContent({ content }: { content: string }) {
         if (p.startsWith("### ")) {
           return (
             <h3 key={i} className="mt-4 font-serif text-lg font-semibold text-forest">
-              {p.replace("### ", "")}
+              <InlineText text={p.replace("### ", "")} />
             </h3>
           );
         }
         if (p.startsWith("## ")) {
           return (
             <h2 key={i} className="mt-4 font-serif text-xl font-semibold text-forest">
-              {p.replace("## ", "")}
+              <InlineText text={p.replace("## ", "")} />
             </h2>
+          );
+        }
+        if (p.startsWith("# ")) {
+          return (
+            <h1 key={i} className="mt-4 font-serif text-2xl font-semibold text-forest">
+              <InlineText text={p.replace("# ", "")} />
+            </h1>
           );
         }
 
