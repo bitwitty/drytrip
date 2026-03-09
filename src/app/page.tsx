@@ -85,7 +85,7 @@ export default async function Home() {
       <section className="mx-auto max-w-5xl px-6 pb-20 pt-16 md:px-12 md:pt-28">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <h1 className="font-serif text-4xl leading-tight tracking-tight text-forest md:text-5xl lg:text-6xl">
+            <h1 className="font-serif text-3xl leading-tight tracking-tight text-forest sm:text-4xl md:text-5xl lg:text-6xl">
               Clear-headed luxury travel.
             </h1>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-forest/70">

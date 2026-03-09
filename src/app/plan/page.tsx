@@ -102,7 +102,7 @@ export default function PlanPage() {
             </div>
 
             {/* Trust strip */}
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-xs text-forest/40">
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-xs text-forest/40 sm:gap-6">
               <span className="flex items-center gap-1.5">
                 <Droplets className="size-3.5" />
                 107 verified venues

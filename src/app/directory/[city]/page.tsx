@@ -122,7 +122,7 @@ export default function CityDirectoryPage() {
           <div className="relative">
             <button
               onClick={() => setCityDropdownOpen((o) => !o)}
-              className="flex items-center gap-1 font-serif text-4xl font-semibold leading-tight tracking-tight text-forest transition-colors hover:text-forest/70 md:text-5xl"
+              className="flex items-center gap-1 font-serif text-3xl font-semibold leading-tight tracking-tight text-forest transition-colors hover:text-forest/70 sm:text-4xl md:text-5xl"
             >
               {cityConfig.display}
               <ChevronDown className="mt-1 size-6 shrink-0 text-forest/40 md:size-7" />
@@ -146,7 +146,7 @@ export default function CityDirectoryPage() {
             )}
           </div>
 
-          <span className="font-serif text-4xl font-semibold leading-tight tracking-tight text-forest md:text-5xl">
+          <span className="font-serif text-3xl font-semibold leading-tight tracking-tight text-forest sm:text-4xl md:text-5xl">
             Venues
           </span>
         </div>
