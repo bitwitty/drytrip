@@ -19,9 +19,9 @@ import Footer from "@/components/Footer";
 
 const suggestedPrompts = [
   "Plan a 3-day trip to London with great nightlife",
-  "Best alcohol-free bars in NYC",
-  "Date night in London, no alcohol",
-  "Where should I go in Brooklyn for zero-proof cocktails?",
+  "Best alcohol-free bars in Berlin",
+  "Date night in Melbourne, no alcohol",
+  "Zero-proof cocktails in Los Angeles",
 ];
 
 function getTextContent(message: UIMessage): string {
@@ -113,7 +113,7 @@ export default function PlanPage() {
               </span>
               <span className="flex items-center gap-1.5">
                 <MapPin className="size-3.5" />
-                London & New York
+                7 cities worldwide
               </span>
             </div>
           </div>

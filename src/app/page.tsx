@@ -106,7 +106,7 @@ export default async function Home() {
                 Browse the Directory
               </Link>
             </div>
-            <p className="mt-4 text-xs text-forest/40">{countLabel} in London & New York</p>
+            <p className="mt-4 text-xs text-forest/40">{countLabel} across 7 cities</p>
           </div>
 
           {/* Featured venue card */}
@@ -176,7 +176,7 @@ export default async function Home() {
               <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-sandstone/40 bg-white p-8 text-center shadow-sm">
                 <Droplets className="mx-auto size-10 text-forest/30" />
                 <p className="mt-4 font-serif text-lg text-forest">
-                  London & New York venues, rated.
+                  Venues in 7 cities, rated.
                 </p>
                 <p className="mt-2 text-sm text-forest/50">
                   Browse {countLabel} with verified Dry Scores.

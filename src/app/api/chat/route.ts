@@ -1,5 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText, type UIMessage } from "ai";
+import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TRIP_PLANNER_SYSTEM_PROMPT } from "@/lib/prompts";
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const { messages, city = "London" } = await req.json();
+  const { messages } = await req.json();
 
   // Session-level rate limit (20 messages per session)
   if (messages.length > 20) {
@@ -54,14 +54,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Fetch published venues for the requested city
+  // Fetch all published venues across all cities
   const { data: venues } = await supabaseAdmin
     .from("venues")
     .select(
-      "name, slug, neighborhood, category, dry_score, top_na_drink, short_description, vibe_tags, price_range, hours_note, ai_context, booking_url, website_url"
+      "name, slug, neighborhood, city, category, dry_score, top_na_drink, short_description, vibe_tags, price_range, hours_note, ai_context, booking_url, website_url"
     )
-    .eq("status", "Published")
-    .eq("city", city);
+    .eq("status", "Published");
 
   const venueContext = venues
     ? JSON.stringify(
@@ -69,6 +68,7 @@ export async function POST(req: NextRequest) {
           name: v.name,
           slug: v.slug,
           neighborhood: v.neighborhood,
+          city: v.city,
           category: v.category,
           dry_score: v.dry_score,
           top_na_drink: v.top_na_drink,
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 
   const result = streamText({
     model: anthropic("claude-sonnet-4-5-20250929"),
-    system: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venues?.length ?? 0} verified ${city} venues)\n${venueContext}`,
+    system: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venues?.length ?? 0} verified venues across all cities)\n${venueContext}`,
     messages,
   });
 
