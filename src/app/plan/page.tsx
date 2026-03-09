@@ -19,9 +19,9 @@ import Footer from "@/components/Footer";
 
 const suggestedPrompts = [
   "Plan a 3-day trip to London with great nightlife",
-  "Best mocktail bars in Soho",
-  "London hotel with AF minibar for a weekend trip",
-  "Date night in London — no alcohol, lots of personality",
+  "Best alcohol-free bars in NYC",
+  "Date night in London, no alcohol",
+  "Where should I go in Brooklyn for zero-proof cocktails?",
 ];
 
 function getTextContent(message: UIMessage): string {
@@ -105,15 +105,15 @@ export default function PlanPage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-xs text-forest/40">
               <span className="flex items-center gap-1.5">
                 <Droplets className="size-3.5" />
-                40+ verified venues
+                75+ verified venues
               </span>
               <span className="flex items-center gap-1.5">
                 <Shield className="size-3.5" />
-                Never hallucinates
+                Grounded in verified data
               </span>
               <span className="flex items-center gap-1.5">
                 <MapPin className="size-3.5" />
-                London coverage
+                London & New York
               </span>
             </div>
           </div>

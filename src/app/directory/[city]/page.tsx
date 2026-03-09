@@ -17,8 +17,9 @@ const VenueMap = dynamic(() => import("@/components/VenueMap"), { ssr: false });
 /*  City config                                                        */
 /* ------------------------------------------------------------------ */
 
-const CITIES: Record<string, { display: string; dbValue: string }> = {
-  london: { display: "London", dbValue: "London" },
+const CITIES: Record<string, { display: string; dbValue: string; center: [number, number] }> = {
+  london: { display: "London", dbValue: "London", center: [-0.1276, 51.5074] },
+  "new-york": { display: "New York", dbValue: "New York", center: [-73.9857, 40.7484] },
 };
 
 const categories = ["All", "Hotel", "Restaurant", "Bar"] as const;
@@ -124,16 +125,18 @@ export default function CityDirectoryPage() {
 
             {cityDropdownOpen && (
               <div className="absolute left-0 top-full z-10 mt-2 min-w-[160px] overflow-hidden rounded-xl border border-sandstone/40 bg-white shadow-md">
-                <Link
-                  href="/directory/london"
-                  onClick={() => setCityDropdownOpen(false)}
-                  className="block px-4 py-3 text-sm font-medium text-forest hover:bg-linen"
-                >
-                  London
-                </Link>
-                <div className="border-t border-sandstone/30 px-4 py-3">
-                  <p className="text-xs text-forest/40">More cities coming soon</p>
-                </div>
+                {Object.entries(CITIES).map(([slug, config]) => (
+                  <Link
+                    key={slug}
+                    href={`/directory/${slug}`}
+                    onClick={() => setCityDropdownOpen(false)}
+                    className={`block px-4 py-3 text-sm font-medium text-forest hover:bg-linen ${
+                      slug === citySlug ? "bg-linen/60" : ""
+                    }`}
+                  >
+                    {config.display}
+                  </Link>
+                ))}
               </div>
             )}
           </div>
@@ -246,6 +249,7 @@ export default function CityDirectoryPage() {
         <div className="hidden md:block">
           <VenueMap
             venues={filtered}
+            center={cityConfig.center}
             className="h-[350px] w-full"
           />
         </div>
@@ -265,6 +269,7 @@ export default function CityDirectoryPage() {
             <div className="flex-1 px-4 pb-4">
               <VenueMap
                 venues={filtered}
+                center={cityConfig.center}
                 className="h-full w-full"
               />
             </div>
