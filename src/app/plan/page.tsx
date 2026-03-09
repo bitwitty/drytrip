@@ -15,6 +15,9 @@ import {
   RefreshCw,
   Loader2,
   ArrowRight,
+  Mail,
+  Copy,
+  Check,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
@@ -46,6 +49,10 @@ export default function PlanPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [emailPlanStatus, setEmailPlanStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [copied, setCopied] = useState(false);
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [emailPromptInput, setEmailPromptInput] = useState("");
 
   // Restore email from localStorage on mount
   useEffect(() => {
@@ -76,6 +83,74 @@ export default function PlanPage() {
     setUserEmail(email);
     setEmailStatus("idle");
     posthog?.capture("email_gate_completed", { source: "plan" });
+  }
+
+  async function sendPlanEmail(email: string) {
+    setEmailPlanStatus("loading");
+    try {
+      const res = await fetch("/api/email-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          messages: messages.map((m) => ({
+            role: m.role,
+            content: getTextContent(m),
+          })),
+        }),
+      });
+      if (res.ok) {
+        setEmailPlanStatus("sent");
+        posthog?.capture("plan_emailed");
+        setTimeout(() => setEmailPlanStatus("idle"), 3000);
+      } else {
+        setEmailPlanStatus("error");
+        setTimeout(() => setEmailPlanStatus("idle"), 3000);
+      }
+    } catch {
+      setEmailPlanStatus("error");
+      setTimeout(() => setEmailPlanStatus("idle"), 3000);
+    }
+  }
+
+  async function handleEmailPlan() {
+    if (userEmail) {
+      await sendPlanEmail(userEmail);
+    } else {
+      setShowEmailPrompt(true);
+      posthog?.capture("plan_email_prompt_shown");
+    }
+  }
+
+  async function handleEmailPromptSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const email = emailPromptInput.trim().toLowerCase();
+    if (!email) return;
+
+    // Save email (same as gate flow)
+    await supabase.from("waitlist").insert([{ email, variant: "plan" }]);
+    localStorage.setItem(STORAGE_KEY, email);
+    setUserEmail(email);
+    setShowEmailPrompt(false);
+    posthog?.capture("email_gate_completed", { source: "plan_email_prompt" });
+
+    // Send the plan
+    await sendPlanEmail(email);
+  }
+
+  function handleCopyPlan() {
+    const text = messages
+      .map((m) => {
+        const content = getTextContent(m);
+        return m.role === "user" ? `You: ${content}` : content;
+      })
+      .join("\n\n---\n\n");
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      posthog?.capture("plan_copied");
+      setTimeout(() => setCopied(false), 2000);
+    });
   }
 
   // Track conversation depth milestones
@@ -255,6 +330,74 @@ export default function PlanPage() {
 
         {/* Chat input or email gate */}
         <div className="sticky bottom-0 bg-linen pb-6 pt-2">
+          {/* Action bar: email plan + copy */}
+          {!isEmpty && assistantMessages > 0 && !isLoading && !needsEmail && (
+            <div className="mb-2 flex items-center gap-2">
+              {showEmailPrompt ? (
+                <form
+                  onSubmit={handleEmailPromptSubmit}
+                  className="flex flex-1 items-center gap-2 rounded-xl border border-sandstone/50 bg-white px-3 py-2"
+                >
+                  <Mail className="size-3.5 shrink-0 text-forest/40" />
+                  <input
+                    type="email"
+                    required
+                    value={emailPromptInput}
+                    onChange={(e) => setEmailPromptInput(e.target.value)}
+                    placeholder="your@email.com"
+                    className="flex-1 bg-transparent text-xs text-forest placeholder:text-forest/30 focus:outline-none"
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="text-xs font-medium text-forest hover:text-forest/70"
+                  >
+                    Send
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailPrompt(false)}
+                    className="text-xs text-forest/30 hover:text-forest/60"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <button
+                    onClick={handleEmailPlan}
+                    disabled={emailPlanStatus === "loading"}
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-forest/40 transition-colors hover:bg-sandstone/20 hover:text-forest/60 disabled:opacity-50"
+                  >
+                    {emailPlanStatus === "loading" ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : emailPlanStatus === "sent" ? (
+                      <Check className="size-3 text-sage" />
+                    ) : (
+                      <Mail className="size-3" />
+                    )}
+                    {emailPlanStatus === "sent"
+                      ? "Sent! Check your inbox"
+                      : emailPlanStatus === "error"
+                        ? "Failed — try again"
+                        : "Email me this plan"}
+                  </button>
+                  <button
+                    onClick={handleCopyPlan}
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-forest/40 transition-colors hover:bg-sandstone/20 hover:text-forest/60"
+                  >
+                    {copied ? (
+                      <Check className="size-3 text-sage" />
+                    ) : (
+                      <Copy className="size-3" />
+                    )}
+                    {copied ? "Copied!" : "Copy plan"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           {needsEmail ? (
             <div className="rounded-2xl border border-sandstone/50 bg-white px-5 py-5 shadow-sm">
               <h3 className="font-serif text-lg font-semibold text-forest">
