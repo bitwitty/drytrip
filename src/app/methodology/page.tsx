@@ -7,6 +7,25 @@ export const metadata: Metadata = {
   title: "How Dry Scores Work",
   description:
     "Our 1–5 rating system for the quality of a venue's alcohol-free experience.",
+  openGraph: {
+    title: "How Dry Scores Work | Dry Trip",
+    description:
+      "Our 1–5 rating system for the quality of a venue's alcohol-free experience.",
+    images: [
+      {
+        url: "/api/og?title=How%20Dry%20Scores%20Work&subtitle=Our%201%E2%80%935%20rating%20for%20the%20alcohol-free%20experience",
+        width: 1200,
+        height: 630,
+        alt: "How Dry Scores Work",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "How Dry Scores Work | Dry Trip",
+    description:
+      "Our 1–5 rating system for the quality of a venue's alcohol-free experience.",
+  },
 };
 
 const scores = [

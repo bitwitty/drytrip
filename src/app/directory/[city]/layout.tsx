@@ -45,6 +45,19 @@ export async function generateMetadata({
     openGraph: {
       title: `${seo.display} Alcohol-Free Venues | Dry Trip`,
       description: seo.description,
+      images: [
+        {
+          url: `/api/og?title=${encodeURIComponent(`${seo.display} Alcohol-Free Venues`)}&subtitle=${encodeURIComponent(seo.description)}`,
+          width: 1200,
+          height: 630,
+          alt: `${seo.display} alcohol-free venues on Dry Trip`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${seo.display} Alcohol-Free Venues | Dry Trip`,
+      description: seo.description,
     },
   };
 }

@@ -2,7 +2,14 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const title = searchParams.get("title");
+  const subtitle = searchParams.get("subtitle");
+
+  const tagline = subtitle
+    ?? "Luxury travel rated for the alcohol-free experience. Verified venues, AI trip planning, zero compromises.";
+
   return new ImageResponse(
     (
       <div
@@ -65,20 +72,36 @@ export async function GET() {
           }}
         />
 
-        {/* Tagline */}
+        {/* Dynamic title (e.g. city name or page title) */}
+        {title && (
+          <div
+            style={{
+              fontSize: 36,
+              fontWeight: 600,
+              color: "#F9F7F2",
+              textAlign: "center",
+              maxWidth: 900,
+              marginTop: 28,
+              lineHeight: 1.3,
+            }}
+          >
+            {title}
+          </div>
+        )}
+
+        {/* Tagline / subtitle */}
         <div
           style={{
-            fontSize: 22,
+            fontSize: title ? 20 : 22,
             color: "#F9F7F2",
             opacity: 0.6,
             textAlign: "center",
             maxWidth: 750,
-            marginTop: 28,
+            marginTop: title ? 16 : 28,
             lineHeight: 1.6,
           }}
         >
-          Luxury travel rated for the alcohol-free experience. Verified venues,
-          AI trip planning, zero compromises.
+          {tagline}
         </div>
       </div>
     ),
