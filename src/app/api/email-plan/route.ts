@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { error } = await resend.emails.send({
-      from: "Dry Trip <onboarding@resend.dev>",
+      from: "Dry Trip <updates@drytrip.co>",
       to: email,
       subject: "Your Dry Trip Plan",
       html,
