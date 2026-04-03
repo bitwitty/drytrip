@@ -22,6 +22,7 @@
     "mapbox-gl": "^3.18.1",
     "next": "^16.1.6",
     "posthog-js": "^1.351.4",
+    "posthog-node": "^5.28.11",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^6.9.3"
