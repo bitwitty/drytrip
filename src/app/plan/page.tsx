@@ -82,6 +82,7 @@ export default function PlanPage() {
     localStorage.setItem(STORAGE_KEY, email);
     setUserEmail(email);
     setEmailStatus("idle");
+    posthog?.identify(email, { email });
     posthog?.capture("email_gate_completed", { source: "plan" });
   }
 
@@ -132,6 +133,7 @@ export default function PlanPage() {
     localStorage.setItem(STORAGE_KEY, email);
     setUserEmail(email);
     setShowEmailPrompt(false);
+    posthog?.identify(email, { email });
     posthog?.capture("email_gate_completed", { source: "plan_email_prompt" });
 
     // Send the plan
@@ -175,6 +177,7 @@ export default function PlanPage() {
 
   async function handleSuggestionClick(prompt: string) {
     setInput("");
+    posthog?.capture("ai_suggestion_used", { prompt });
     await sendMessage({ text: prompt });
   }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function GET(
   request: NextRequest,
@@ -25,11 +26,21 @@ export async function GET(
     venue.website_url ||
     `https://www.google.com/maps/search/${encodeURIComponent(venue.name + " London")}`;
 
+  const sessionId = request.cookies.get("dt_session")?.value || null;
+
   // Log the click
   await supabaseAdmin.from("venue_clicks").insert({
     venue_id: id,
     source,
-    session_id: request.cookies.get("dt_session")?.value || null,
+    session_id: sessionId,
+  });
+
+  // Track outbound click in PostHog
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: sessionId || id,
+    event: "venue_outbound_clicked",
+    properties: { venue_id: id, venue_name: venue.name, source },
   });
 
   return NextResponse.redirect(redirectUrl);

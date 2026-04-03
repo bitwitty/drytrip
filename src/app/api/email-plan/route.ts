@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { NextRequest } from "next/server";
 import { buildPlanEmailHtml } from "@/lib/email-template";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 // Lazy-init to avoid crashing when RESEND_API_KEY isn't set yet
 let _resend: Resend | null = null;
@@ -99,6 +100,13 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: email,
+      event: "plan_email_sent",
+      properties: { message_count: messages.length },
+    });
 
     return Response.json({ success: true });
   } catch (err) {

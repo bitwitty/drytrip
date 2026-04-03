@@ -165,6 +165,10 @@ export default function CityDirectoryPage() {
             placeholder="Search venues, neighbourhoods, vibes…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onBlur={(e) => {
+              const q = e.target.value.trim();
+              if (q) posthog?.capture("directory_search_used", { query: q, city: citySlug });
+            }}
             className="w-full rounded-xl border border-sandstone/40 bg-white py-3 pl-11 pr-10 text-sm text-forest placeholder:text-forest/30 focus:outline-none focus:ring-2 focus:ring-forest/20"
           />
           {searchQuery && (

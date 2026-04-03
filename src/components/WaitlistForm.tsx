@@ -30,9 +30,11 @@ export default function WaitlistForm({
       .from("waitlist")
       .insert([{ email: email.trim().toLowerCase(), variant: "A" }]);
 
+    const normalizedEmail = email.trim().toLowerCase();
     if (error) {
       if (error.code === "23505") {
         setStatus("success");
+        posthog?.identify(normalizedEmail, { email: normalizedEmail });
         posthog?.capture("newsletter_subscribed");
       } else {
         setStatus("error");
@@ -40,6 +42,7 @@ export default function WaitlistForm({
       }
     } else {
       setStatus("success");
+      posthog?.identify(normalizedEmail, { email: normalizedEmail });
       posthog?.capture("newsletter_subscribed");
     }
   }
