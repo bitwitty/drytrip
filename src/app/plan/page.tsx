@@ -319,7 +319,10 @@ export default function PlanPage() {
                     Something went wrong — try again
                   </p>
                   <button
-                    onClick={() => regenerate()}
+                    onClick={() => {
+                      posthog?.capture("ai_chat_retried");
+                      regenerate();
+                    }}
                     className="flex items-center gap-1.5 rounded-lg bg-clay/10 px-3 py-1.5 text-xs font-medium text-clay transition-colors hover:bg-clay/20"
                   >
                     <RefreshCw className="size-3" />

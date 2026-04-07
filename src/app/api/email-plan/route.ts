@@ -93,15 +93,21 @@ export async function POST(req: NextRequest) {
       html,
     });
 
+    const posthog = getPostHogClient();
+
     if (error) {
       console.error("Resend error:", error);
+      posthog.capture({
+        distinctId: email,
+        event: "plan_email_failed",
+        properties: { reason: "resend_error", message: error.message },
+      });
       return Response.json(
         { error: "Failed to send email. Please try again." },
         { status: 500 }
       );
     }
 
-    const posthog = getPostHogClient();
     posthog.capture({
       distinctId: email,
       event: "plan_email_sent",
@@ -111,6 +117,19 @@ export async function POST(req: NextRequest) {
     return Response.json({ success: true });
   } catch (err) {
     console.error("Email send error:", err);
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: email,
+      event: "plan_email_failed",
+      properties: {
+        reason: "exception",
+        message: err instanceof Error ? err.message : String(err),
+      },
+    });
+    posthog.captureException(
+      err instanceof Error ? err : new Error(String(err)),
+      email
+    );
     return Response.json(
       { error: "Failed to send email. Please try again." },
       { status: 500 }
