@@ -1,8 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { type UIMessage } from "ai";
-import { useState, useEffect, useRef } from "react";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { usePostHog } from "posthog-js/react";
 import Link from "next/link";
 import {
@@ -42,7 +42,30 @@ function getTextContent(message: UIMessage): string {
 
 export default function PlanPage() {
   const posthog = usePostHog();
-  const { messages, sendMessage, regenerate, status, error } = useChat();
+
+  // Thread PostHog distinct + session IDs from client to /api/chat so
+  // server-side events correlate with the same person/session.
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        headers: () => {
+          const headers: Record<string, string> = {};
+          try {
+            const distinctId = posthog?.get_distinct_id();
+            const sessionId = posthog?.get_session_id();
+            if (distinctId) headers["X-PostHog-Distinct-Id"] = distinctId;
+            if (sessionId) headers["X-PostHog-Session-Id"] = sessionId;
+          } catch {
+            // PostHog not ready yet — fall back to IP on the server.
+          }
+          return headers;
+        },
+      }),
+    [posthog]
+  );
+
+  const { messages, sendMessage, regenerate, status, error } = useChat({ transport });
   const [input, setInput] = useState("");
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, "up" | "down">>({});
   const conversationStarted = useRef(false);
