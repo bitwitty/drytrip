@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePostHog } from "posthog-js/react";
+import posthog from "posthog-js";
 import { supabase } from "@/lib/supabase";
 import { Droplets, Wine, MapPin, Search, Sparkles, ArrowUpDown, ChevronDown, Map, X } from "lucide-react";
 import Nav from "@/components/Nav";
@@ -34,7 +34,6 @@ const categories = ["All", "Hotel", "Restaurant", "Bar"] as const;
 /* ------------------------------------------------------------------ */
 
 export default function CityDirectoryPage() {
-  const posthog = usePostHog();
   const params = useParams();
   const citySlug = (params.city as string) ?? "london";
   const cityConfig = CITIES[citySlug] ?? CITIES.london;

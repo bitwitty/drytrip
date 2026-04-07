@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import PostHogProvider from "@/components/PostHogProvider";
 import CookieConsent from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
@@ -56,10 +55,8 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <PostHogProvider>
-          {children}
-          <CookieConsent />
-        </PostHogProvider>
+        {children}
+        <CookieConsent />
       </body>
     </html>
   );

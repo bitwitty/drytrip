@@ -3,6 +3,35 @@
 
 The wizard has completed a deep integration of PostHog analytics into Dry Trip. The existing partial integration (PostHogProvider, waitlist form, AI planner, and directory) was extended with server-side event tracking, user identification, additional client-side events, a reverse proxy for better ad-blocker resistance, and error tracking.
 
+## Third pass — migration to `instrumentation-client.ts` (April 2026)
+
+A follow-up wizard run migrated the client-side initialization from a `useEffect`-based `<PostHogProvider>` component to the Next.js 15.3+ `instrumentation-client.ts` pattern. This is the PostHog-recommended approach for App Router projects on Next.js 15.3 and above (Dry Trip is on 16.1.6) and explicitly **must not** be combined with a provider-based init — the example project warns: *"Never combine this approach with other client-side PostHog initialization approaches."*
+
+**Why migrate?**
+
+- **Earlier init.** `instrumentation-client.ts` runs before the React tree mounts, so early page-view, autocapture, and exception tracking aren't gated on a `useEffect` firing after first render.
+- **No double-init risk.** The previous `useEffect` in `PostHogProvider.tsx` would re-run on hot reloads and any unmount/remount of the provider in the tree.
+- **Less ceremony.** No React context, no provider wrapper, no `usePostHog()` hook required — every consumer just imports the singleton.
+- **Future-proof.** This is the pattern PostHog's wizard, docs, and example projects all converge on for Next.js 15.3+.
+
+**Files changed:**
+
+| File | Change |
+|---|---|
+| `instrumentation-client.ts` *(new, project root)* | Initializes the `posthog-js` singleton with the full prior config: `/ingest` reverse proxy, `defaults: "2026-01-30"`, `person_profiles: "identified_only"`, `capture_pageview`, `capture_exceptions`, `debug` in dev. Reads the GDPR consent flag from `localStorage` and sets `opt_out_capturing_by_default` accordingly, then calls `opt_in_capturing()` if previously accepted. |
+| `src/components/PostHogProvider.tsx` | **Deleted.** Replaced by `instrumentation-client.ts`. |
+| `src/app/layout.tsx` | Removed the `<PostHogProvider>` wrapper around `{children}`. `<CookieConsent />` now renders directly in `<body>`. |
+| `src/components/WaitlistForm.tsx` | Replaced `import { usePostHog } from "posthog-js/react"` + `const posthog = usePostHog()` with a direct `import posthog from "posthog-js"` singleton. |
+| `src/components/VenueDetailTracker.tsx` | Same migration. |
+| `src/app/directory/[city]/page.tsx` | Same migration. |
+| `src/app/plan/page.tsx` | Same migration. Also removed `posthog` from a `useEffect` deps array (it's now a module-level import, not a local) and updated the `DefaultChatTransport` headers function to call `posthog.get_distinct_id()` / `get_session_id()` directly on the singleton. |
+
+**No new events added** in this pass — the existing 21 events from the first two wizard runs already comprehensively cover all critical user flows and the 3 API routes.
+
+**No PostHog dashboard changes** — the existing "Analytics basics" dashboard from the first pass continues to apply, since event names and properties are unchanged.
+
+---
+
 ## Second pass — error & friction tracking (April 2026)
 
 A follow-up wizard run added 5 server-side error / rate-limit / security events to fill visibility gaps in the critical AI planner and email flows. No existing tracking was modified.

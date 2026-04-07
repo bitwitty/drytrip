@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePostHog } from "posthog-js/react";
+import posthog from "posthog-js";
 
 export default function VenueDetailTracker({
   slug,
@@ -12,11 +12,9 @@ export default function VenueDetailTracker({
   name: string;
   category: string;
 }) {
-  const posthog = usePostHog();
-
   useEffect(() => {
-    posthog?.capture("venue_detail_viewed", { slug, name, category });
-  }, [posthog, slug, name, category]);
+    posthog.capture("venue_detail_viewed", { slug, name, category });
+  }, [slug, name, category]);
 
   return null;
 }

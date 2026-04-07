@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { usePostHog } from "posthog-js/react";
+import posthog from "posthog-js";
 import Link from "next/link";
 import {
   Send,
@@ -41,8 +41,6 @@ function getTextContent(message: UIMessage): string {
 }
 
 export default function PlanPage() {
-  const posthog = usePostHog();
-
   // Thread PostHog distinct + session IDs from client to /api/chat so
   // server-side events correlate with the same person/session.
   const transport = useMemo(
@@ -52,8 +50,8 @@ export default function PlanPage() {
         headers: () => {
           const headers: Record<string, string> = {};
           try {
-            const distinctId = posthog?.get_distinct_id();
-            const sessionId = posthog?.get_session_id();
+            const distinctId = posthog.get_distinct_id();
+            const sessionId = posthog.get_session_id();
             if (distinctId) headers["X-PostHog-Distinct-Id"] = distinctId;
             if (sessionId) headers["X-PostHog-Session-Id"] = sessionId;
           } catch {
@@ -62,7 +60,7 @@ export default function PlanPage() {
           return headers;
         },
       }),
-    [posthog]
+    []
   );
 
   const { messages, sendMessage, regenerate, status, error } = useChat({ transport });
@@ -188,7 +186,7 @@ export default function PlanPage() {
     if (assistantMessages === 3) {
       posthog?.capture("ai_conversation_depth_3");
     }
-  }, [messages, posthog]);
+  }, [messages]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

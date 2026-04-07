@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePostHog } from "posthog-js/react";
+import posthog from "posthog-js";
 import { supabase } from "@/lib/supabase";
 import { ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 
@@ -19,7 +19,6 @@ export default function WaitlistForm({
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const posthog = usePostHog();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
