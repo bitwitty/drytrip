@@ -15,6 +15,12 @@ export default function Nav() {
           Directory
         </Link>
         <Link
+          href="/edit"
+          className="rounded-lg px-3 py-2 text-sm font-medium text-forest/70 transition-colors hover:text-forest"
+        >
+          The Edit
+        </Link>
+        <Link
           href="/plan"
           className="rounded-lg px-3 py-2 text-sm font-medium text-forest/70 transition-colors hover:text-forest"
         >
