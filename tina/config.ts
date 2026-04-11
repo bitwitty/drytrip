@@ -6,7 +6,7 @@ export default defineConfig({
   token: process.env.TINA_TOKEN ?? "",
 
   build: {
-    outputFolder: "admin",
+    outputFolder: "cms",
     publicFolder: "public",
   },
 
