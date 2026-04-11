@@ -29,6 +29,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^6.9.3",
+    "slate": "^0.124.0",
+    "slate-dom": "^0.124.0",
     "tinacms": "^3.7.2"
   },
   "devDependencies": {
