@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "tinacms dev -c \"next dev\"",
+    "build": "tinacms build && next build",
     "start": "next start",
     "lint": "eslint",
     "pipeline": "tsx scripts/pipeline.ts",
@@ -27,10 +27,12 @@
     "posthog-node": "^5.28.11",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "resend": "^6.9.3"
+    "resend": "^6.9.3",
+    "tinacms": "^3.7.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tinacms/cli": "^2.2.2",
     "@types/mapbox-gl": "^3.4.1",
     "@types/mdx": "^2.0.13",
     "@types/node": "^20",
