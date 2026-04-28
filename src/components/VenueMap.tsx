@@ -98,10 +98,6 @@ export default function VenueMap({
     const layerIds = ["venue-clusters", "venue-cluster-count", "venue-points", "venue-highlight"];
     layerIds.forEach((id) => {
       if (map.getLayer(id)) {
-        // Remove all event listeners for this layer to prevent accumulation
-        map.off("click", id);
-        map.off("mouseenter", id);
-        map.off("mouseleave", id);
         map.removeLayer(id);
       }
     });
