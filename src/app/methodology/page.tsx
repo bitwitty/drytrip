@@ -93,7 +93,7 @@ export default function MethodologyPage() {
                   <span className="text-2xl font-bold text-forest">
                     {s.score}
                   </span>
-                  <span className="text-sm text-forest/40">/5</span>
+                  <span className="text-sm text-forest/60">/5</span>
                 </div>
                 <div>
                   <h3 className="font-serif text-lg font-semibold text-forest">

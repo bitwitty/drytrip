@@ -8,8 +8,8 @@
   --color-sage: #7A8B6F;
   --color-clay: #B85C38;
   --color-mist: #E8E4DD;
-  --font-serif: "Cormorant Garamond", "Georgia", "Times New Roman", serif;
-  --font-sans: "Montserrat", "Helvetica Neue", "Arial", system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), "Georgia", "Times New Roman", serif;
+  --font-sans: var(--font-montserrat), "Helvetica Neue", "Arial", system-ui, sans-serif;
 }
 
 body {

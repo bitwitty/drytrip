@@ -21,10 +21,23 @@ export async function GET(
   }
 
   // Determine redirect URL: booking_url > website_url > Google Maps
-  const redirectUrl =
+  const baseUrl =
     venue.booking_url ||
     venue.website_url ||
-    `https://www.google.com/maps/search/${encodeURIComponent(venue.name + " London")}`;
+    `https://www.google.com/maps/search/${encodeURIComponent(venue.name)}`;
+
+  // Append UTM params for attribution tracking
+  let redirectUrl = baseUrl;
+  try {
+    const url = new URL(baseUrl);
+    url.searchParams.set("utm_source", "drytrip");
+    url.searchParams.set("utm_medium", "referral");
+    url.searchParams.set("utm_campaign", source);
+    redirectUrl = url.toString();
+  } catch {
+    // If URL parsing fails, use the raw URL
+    redirectUrl = baseUrl;
+  }
 
   const sessionId = request.cookies.get("dt_session")?.value || null;
 

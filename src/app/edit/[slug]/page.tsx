@@ -177,7 +177,7 @@ export default async function ArticlePage({
                 <h3 className="mt-1 font-serif text-base font-semibold leading-snug text-forest group-hover:text-forest/80">
                   {r.title}
                 </h3>
-                <p className="mt-2 text-xs text-forest/40">
+                <p className="mt-2 text-xs text-forest/60">
                   {formatDate(r.publishedAt)} &middot; {r.readingTime} min read
                 </p>
               </Link>
@@ -199,7 +199,7 @@ export default async function ArticlePage({
               </h3>
               <p className="mt-1 text-sm text-forest/60">
                 Our AI concierge builds personalised itineraries using verified
-                venue data — never hallucinated.
+                venue data — verified and editorially reviewed.
               </p>
               <Link
                 href="/plan"

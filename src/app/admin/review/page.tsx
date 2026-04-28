@@ -10,6 +10,7 @@ type StatusFilter = "Draft" | "Published" | "Rejected";
 export default function AdminReviewPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Draft");
@@ -53,8 +54,9 @@ export default function AdminReviewPage() {
     if (res.ok) {
       document.cookie = "dt_admin=1; path=/; max-age=86400"; // 1 day
       setAuthenticated(true);
+      setLoginError("");
     } else {
-      alert("Wrong password");
+      setLoginError("Wrong password. Try again.");
     }
   }
 
@@ -81,13 +83,18 @@ export default function AdminReviewPage() {
               Admin Access
             </h1>
           </div>
+          <label htmlFor="admin-password" className="sr-only">Admin password</label>
           <input
+            id="admin-password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setLoginError(""); }}
             placeholder="Enter admin password"
             className="mt-6 w-full rounded-lg border border-sandstone bg-linen px-4 py-3 text-forest placeholder:text-forest/30 focus:border-forest focus:outline-none focus:ring-1 focus:ring-forest"
           />
+          {loginError && (
+            <p className="mt-2 text-sm text-clay">{loginError}</p>
+          )}
           <button
             type="submit"
             className="mt-4 w-full rounded-lg bg-forest px-6 py-3 font-medium text-linen transition-opacity hover:opacity-90"

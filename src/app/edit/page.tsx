@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
@@ -43,10 +44,12 @@ function FeaturedHero({ article }: { article: Article }) {
         <article className="overflow-hidden rounded-2xl border border-sandstone/40 bg-white shadow-sm transition-shadow hover:shadow-md md:flex">
           <div className="relative h-56 overflow-hidden bg-forest md:h-auto md:w-2/5">
             {article.coverImage ? (
-              <img
+              <Image
                 src={article.coverImage}
                 alt={article.title}
-                className="absolute inset-0 h-full w-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 40vw"
               />
             ) : (
               <div
@@ -78,7 +81,7 @@ function FeaturedHero({ article }: { article: Article }) {
             <p className="mt-3 text-sm leading-relaxed text-forest/70">
               {article.excerpt}
             </p>
-            <p className="mt-4 text-xs text-forest/40">
+            <p className="mt-4 text-xs text-forest/60">
               {formatDate(article.publishedAt)} &middot; {article.readingTime} min read
             </p>
             <p className="mt-3 text-xs font-medium text-forest/50 transition-colors group-hover:text-forest">
@@ -97,10 +100,12 @@ function EditCard({ article }: { article: Article }) {
       <article className="overflow-hidden rounded-2xl border border-sandstone/40 bg-white shadow-sm transition-shadow hover:shadow-md">
         <div className="relative h-44 overflow-hidden bg-forest">
           {article.coverImage ? (
-            <img
+            <Image
               src={article.coverImage}
               alt={article.title}
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
           ) : (
             <div
@@ -126,7 +131,7 @@ function EditCard({ article }: { article: Article }) {
           <p className="line-clamp-3 text-sm leading-relaxed text-forest/70">
             {article.excerpt}
           </p>
-          <p className="mt-3 text-xs text-forest/40">
+          <p className="mt-3 text-xs text-forest/60">
             {formatDate(article.publishedAt)} &middot; {article.readingTime} min read
           </p>
           <p className="mt-3 text-xs font-medium text-forest/50 transition-colors group-hover:text-forest">

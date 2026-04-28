@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Compass, Sparkles, Shield, Droplets, MapPin, Wine } from "lucide-react";
 import WaitlistForm from "@/components/WaitlistForm";
@@ -10,21 +11,21 @@ export const revalidate = 86400; // revalidate once per day
 
 const features = [
   {
-    title: "Every venue, scored for clarity",
+    title: "The Directory",
     description:
-      "Our proprietary Dry Score rates hotels, restaurants, and bars — so you know exactly what to expect before you book.",
+      "Every venue clears an editor before it goes live. Each one chosen on purpose — one at a time, one city at a time. The directory grows by decision, not by crawl.",
     icon: Compass,
   },
   {
-    title: "Plan on your terms",
+    title: "The Dry Score",
     description:
-      "Use our AI-powered trip planner to build itineraries around how you want to feel, not what you need to avoid.",
+      "Every venue rated one to five against the same rubric, from London to Copenhagen to whichever city publishes next. The rubric is public. Two hotels on two continents are actually comparable.",
     icon: Sparkles,
   },
   {
-    title: "Travel without trade-offs",
+    title: "The Trip",
     description:
-      "Sharp mornings. Elevated nights. Full autonomy over every detail of your trip.",
+      "The trip you paid for, kept. You book your own flights, pick your own hotel, and keep your own schedule. Dry Trip makes sure day three is still yours.",
     icon: Shield,
   },
 ];
@@ -53,13 +54,14 @@ async function getFeaturedVenue(): Promise<Venue | null> {
   }
 }
 
-async function getVenueCount(): Promise<number> {
+async function getLondonVenueCount(): Promise<number> {
   try {
     const query = (async () => {
       const { count } = await supabaseAdmin
         .from("venues")
         .select("*", { count: "exact", head: true })
-        .eq("status", "Published");
+        .eq("status", "Published")
+        .eq("city", "London");
       return count ?? 0;
     })();
     return await withTimeout(query, 5000, 0);
@@ -69,44 +71,80 @@ async function getVenueCount(): Promise<number> {
 }
 
 export default async function Home() {
-  const [featuredVenue, venueCount] = await Promise.all([
+  const [featuredVenue, londonVenueCount] = await Promise.all([
     getFeaturedVenue(),
-    getVenueCount(),
+    getLondonVenueCount(),
   ]);
 
-  const countLabel =
-    venueCount > 0 ? `${venueCount}+ verified venues` : "40+ verified venues";
+  const londonCountDisplay = londonVenueCount > 0 ? londonVenueCount : 107;
+
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Dry Trip",
+    url: "https://drytrip.co",
+    logo: "https://drytrip.co/logo-full.png",
+    description: "Editorially curated alcohol-free travel directory. Every venue scored on one rubric, built one city at a time.",
+    sameAs: ["https://www.instagram.com/drytrip.co"],
+  };
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Dry Trip",
+    url: "https://drytrip.co",
+  };
 
   return (
     <div className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
       <Nav />
 
       {/* Hero */}
-      <section className="mx-auto max-w-5xl px-6 pb-20 pt-16 md:px-12 md:pt-28">
+      <section id="main-content" className="mx-auto max-w-5xl px-6 pb-20 pt-16 md:px-12 md:pt-28">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <h1 className="font-serif text-3xl leading-tight tracking-tight text-forest sm:text-4xl md:text-5xl lg:text-6xl">
-              Clear-headed luxury travel.
+              Travel is architecturally alcoholic.
             </h1>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-forest/70">
-              AI-powered trip planning backed by verified alcohol-free venue
-              data. No guesswork. No judgment. No hangovers.
+              Dry Trip is an editorially curated alcohol-free travel directory.
+              Every venue clears an editor before it goes live. Every venue is
+              scored on one rubric. Built one city at a time.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
                 href="/plan"
                 className="inline-flex items-center justify-center rounded-lg bg-forest px-6 py-3 text-sm font-semibold text-linen shadow-sm transition-opacity hover:opacity-90"
               >
-                Start Planning
+                Plan a trip
               </Link>
               <Link
                 href="/directory/london"
                 className="inline-flex items-center justify-center rounded-lg border border-sandstone/60 bg-white/60 px-6 py-3 text-sm font-semibold text-forest transition-colors hover:bg-white"
               >
-                Browse the Directory
+                Browse the directory
               </Link>
             </div>
-            <p className="mt-4 text-xs text-forest/40">{countLabel} across 7 cities</p>
+            <div className="mt-6">
+              <p className="text-xs text-forest/50">Get notified when new cities launch</p>
+              <div className="mt-2 max-w-sm">
+                <WaitlistForm
+                  buttonText="Notify me"
+                  successMessage="You're on the list."
+                />
+              </div>
+              <p className="mt-3 text-xs text-forest/60">
+                {londonCountDisplay} London venues. Six more cities live. More to come.
+              </p>
+            </div>
           </div>
 
           {/* Featured venue card */}
@@ -116,11 +154,12 @@ export default async function Home() {
                 <article className="overflow-hidden rounded-2xl border border-sandstone/40 bg-white shadow-sm transition-shadow group-hover:shadow-md">
                   <div className="relative h-44 overflow-hidden bg-forest">
                     {featuredVenue.image_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={featuredVenue.image_url}
                         alt={featuredVenue.name}
-                        className="absolute inset-0 h-full w-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, 384px"
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-forest via-forest/60 to-forest/10" />
@@ -159,7 +198,7 @@ export default async function Home() {
                       <div className="mt-4 flex items-center gap-2 rounded-lg bg-linen px-3 py-2">
                         <Wine className="size-4 shrink-0 text-forest/60" />
                         <div>
-                          <span className="text-[10px] font-medium uppercase tracking-widest text-forest/40">
+                          <span className="text-[10px] font-medium uppercase tracking-widest text-forest/60">
                             Top NA Drink
                           </span>
                           <p className="text-sm font-medium text-forest">
@@ -176,16 +215,16 @@ export default async function Home() {
               <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-sandstone/40 bg-white p-8 text-center shadow-sm">
                 <Droplets className="mx-auto size-10 text-forest/30" />
                 <p className="mt-4 font-serif text-lg text-forest">
-                  Venues in 7 cities, rated.
+                  The directory
                 </p>
                 <p className="mt-2 text-sm text-forest/50">
-                  Browse {countLabel} with verified Dry Scores.
+                  {londonCountDisplay} London venues, cleared by the editor. Six more cities live.
                 </p>
                 <Link
                   href="/directory/london"
                   className="mt-5 inline-block rounded-lg bg-forest px-5 py-2.5 text-sm font-medium text-linen transition-opacity hover:opacity-90"
                 >
-                  Explore the Directory
+                  Browse the directory
                 </Link>
               </div>
             )}
@@ -199,29 +238,31 @@ export default async function Home() {
           <div className="grid gap-12 md:grid-cols-2 md:items-center">
             <div>
               <h2 className="font-serif text-3xl tracking-tight text-forest">
-                What is a Dry Score?
+                The Dry Score
               </h2>
               <p className="mt-4 text-base leading-relaxed text-forest/70">
-                Our 1–5 rating for the quality of a venue&rsquo;s
-                alcohol-free experience — not just whether they have
-                sparkling water. A Dry Score of 5 means a world-class
-                zero-proof programme with craft cocktails, dedicated menus,
-                and knowledgeable staff.
+                A one-to-five score for how a venue actually handles the
+                non-alcoholic side of the menu. Not whether there&rsquo;s
+                sparkling water — that&rsquo;s table stakes — but whether the
+                zero-proof list is real, whether the staff know it, and whether
+                the place was chosen on purpose. The rubric is published in
+                full. Every venue scored against it has also cleared an
+                editor&rsquo;s desk before going live.
               </p>
               <Link
                 href="/methodology"
                 className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-forest underline underline-offset-4 transition-opacity hover:opacity-70"
               >
-                How we rate venues &rarr;
+                Read the methodology &rarr;
               </Link>
             </div>
             <div className="grid grid-cols-5 gap-2">
               {[
-                { score: 5, label: "World-class", color: "bg-forest" },
-                { score: 4, label: "Excellent", color: "bg-forest/80" },
-                { score: 3, label: "Dedicated", color: "bg-forest/60" },
+                { score: 1, label: "Nominal", color: "bg-forest/20" },
                 { score: 2, label: "Some options", color: "bg-forest/40" },
-                { score: 1, label: "Basic", color: "bg-forest/20" },
+                { score: 3, label: "Dedicated", color: "bg-forest/60" },
+                { score: 4, label: "Excellent", color: "bg-forest/80" },
+                { score: 5, label: "World-class", color: "bg-forest" },
               ].map(({ score, label, color }) => (
                 <div key={score} className="flex flex-col items-center gap-2">
                   <div
@@ -247,7 +288,7 @@ export default async function Home() {
       <section className="border-t border-sandstone/50">
         <div className="mx-auto max-w-5xl px-6 py-20 md:px-12">
           <h2 className="text-center font-serif text-3xl tracking-tight text-forest">
-            How it works
+            What the directory is built on
           </h2>
           <div className="mt-12 grid gap-8 sm:grid-cols-3">
             {features.map((feature) => (
@@ -268,19 +309,20 @@ export default async function Home() {
       </section>
 
       {/* Newsletter signup — below the fold */}
-      <section className="border-t border-sandstone/50 bg-white/40">
+      <section id="newsletter" className="border-t border-sandstone/50 bg-white/40">
         <div className="mx-auto max-w-2xl px-6 py-20 text-center md:px-12">
           <h2 className="font-serif text-3xl tracking-tight text-forest">
-            Weekly alcohol-free travel tips.
+            The newsletter.
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-forest/70">
-            New venues, itineraries, and zero-proof finds — sent to you every
-            week. No spam.
+            Editorial notes from the directory. New venues as they clear the
+            editor. Occasional city edits. Written when there&rsquo;s something
+            worth saying.
           </p>
           <div className="mx-auto mt-8 max-w-md">
             <WaitlistForm
               buttonText="Subscribe"
-              successMessage="You're in. Expect smart, honest travel intel every week."
+              successMessage="You're on the list. First dispatch when there's something worth sending."
             />
           </div>
         </div>

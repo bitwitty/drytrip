@@ -48,9 +48,19 @@ export default function WaitlistForm({
 
   if (status === "success") {
     return (
-      <div className="flex items-center gap-3 text-forest">
-        <CheckCircle className="size-5 shrink-0" />
-        <p className="font-serif text-lg italic">{successMessage}</p>
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 text-forest">
+          <CheckCircle className="size-5 shrink-0" />
+          <p className="font-serif text-lg italic">{successMessage}</p>
+        </div>
+        <a
+          href="https://www.instagram.com/drytrip.co"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs text-forest/50 transition-colors hover:text-forest"
+        >
+          Follow us on Instagram &rarr;
+        </a>
       </div>
     );
   }
@@ -70,7 +80,7 @@ export default function WaitlistForm({
           className="w-full rounded-lg border border-sandstone bg-white px-4 py-3 text-forest placeholder:text-sandstone focus:border-forest focus:outline-none focus:ring-1 focus:ring-forest transition-colors"
         />
         {status === "error" && (
-          <p className="mt-1.5 text-sm text-red-700">{errorMessage}</p>
+          <p className="mt-1.5 text-sm text-clay">{errorMessage}</p>
         )}
       </div>
       <button

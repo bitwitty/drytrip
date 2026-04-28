@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Droplets, Wine, MapPin, Globe, Clock, DollarSign, ExternalLink, CheckCircle } from "lucide-react";
 import { Sparkles } from "lucide-react";
@@ -9,6 +10,8 @@ import Footer from "@/components/Footer";
 import WaitlistForm from "@/components/WaitlistForm";
 import VenueMapClient from "@/components/VenueMapClient";
 import VenueDetailTracker from "@/components/VenueDetailTracker";
+import StickyBookingBar from "@/components/StickyBookingBar";
+import ShareButton from "@/components/ShareButton";
 import type { Venue } from "@/lib/types";
 
 export const revalidate = 86400; // revalidate venue pages once per day
@@ -178,19 +181,58 @@ export default async function VenueDetailPage({
     }
   }
 
+  // Structured data for search engines
+  const venueJsonLd = {
+    "@context": "https://schema.org",
+    "@type": venue.category === "Hotel" ? "Hotel" : venue.category === "Restaurant" ? "Restaurant" : "BarOrPub",
+    name: venue.name,
+    description: venue.short_description ?? undefined,
+    ...(venue.image_url ? { image: venue.image_url } : {}),
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: venue.city,
+      ...(venue.neighborhood ? { streetAddress: venue.neighborhood } : {}),
+    },
+    ...(venue.latitude != null && venue.longitude != null
+      ? {
+          geo: {
+            "@type": "GeoCoordinates",
+            latitude: venue.latitude,
+            longitude: venue.longitude,
+          },
+        }
+      : {}),
+    ...(venue.website_url ? { url: venue.website_url } : {}),
+    ...(venue.price_range ? { priceRange: venue.price_range } : {}),
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: venue.dry_score,
+      bestRating: 5,
+      worstRating: 1,
+      ratingCount: 1,
+      reviewAspect: "Alcohol-free experience",
+    },
+  };
+
   return (
     <div className="min-h-screen bg-linen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(venueJsonLd) }}
+      />
       <VenueDetailTracker slug={venue.slug} name={venue.name} category={venue.category} />
       <Nav />
 
       {/* Dark typographic hero */}
       <section className="relative overflow-hidden bg-forest">
         {venue.image_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={venue.image_url}
             alt={venue.name}
-            className="absolute inset-0 h-full w-full object-cover opacity-25"
+            fill
+            className="object-cover opacity-25"
+            sizes="100vw"
+            priority
           />
         )}
         <div className="relative mx-auto max-w-5xl px-6 pb-12 pt-16 md:px-12 md:pt-20">
@@ -201,7 +243,7 @@ export default async function VenueDetailPage({
             {venue.neighborhood && (
               <span className="flex items-center gap-1 text-xs text-linen/50">
                 <MapPin className="size-3" />
-                {venue.neighborhood}, London
+                {venue.neighborhood}, {venue.city}
               </span>
             )}
           </div>
@@ -276,7 +318,7 @@ export default async function VenueDetailPage({
               <div className="mt-8 rounded-2xl border border-sandstone/30 bg-white p-6">
                 <div className="flex items-center gap-2">
                   <Wine className="size-5 text-forest/60" />
-                  <h3 className="text-xs font-medium uppercase tracking-widest text-forest/40">
+                  <h3 className="text-xs font-medium uppercase tracking-widest text-forest/60">
                     Top NA Drink
                   </h3>
                 </div>
@@ -321,17 +363,24 @@ export default async function VenueDetailPage({
               </a>
             )}
 
+            {/* Share */}
+            <ShareButton
+              title={`${venue.name} | Dry Trip`}
+              text={venue.short_description ?? `${venue.name} — rated ${venue.dry_score}/5 for the alcohol-free experience.`}
+              url={`/venues/${venue.slug}`}
+            />
+
             {/* Key details */}
             <div className="rounded-2xl border border-sandstone/30 bg-white p-6">
-              <h3 className="text-xs font-medium uppercase tracking-widest text-forest/40">
+              <h3 className="text-xs font-medium uppercase tracking-widest text-forest/60">
                 Details
               </h3>
               <dl className="mt-4 space-y-4">
                 {venue.neighborhood && (
                   <div className="flex items-start gap-3">
-                    <MapPin className="mt-0.5 size-4 shrink-0 text-forest/40" />
+                    <MapPin className="mt-0.5 size-4 shrink-0 text-forest/60" />
                     <div>
-                      <dt className="text-xs text-forest/40">Neighborhood</dt>
+                      <dt className="text-xs text-forest/60">Neighborhood</dt>
                       <dd className="text-sm font-medium text-forest">
                         {venue.neighborhood}
                       </dd>
@@ -341,9 +390,9 @@ export default async function VenueDetailPage({
 
                 {venue.price_range && (
                   <div className="flex items-start gap-3">
-                    <DollarSign className="mt-0.5 size-4 shrink-0 text-forest/40" />
+                    <DollarSign className="mt-0.5 size-4 shrink-0 text-forest/60" />
                     <div>
-                      <dt className="text-xs text-forest/40">Price Range</dt>
+                      <dt className="text-xs text-forest/60">Price Range</dt>
                       <dd className="text-sm font-medium text-forest">
                         {venue.price_range}
                       </dd>
@@ -353,9 +402,9 @@ export default async function VenueDetailPage({
 
                 {venue.hours_note && (
                   <div className="flex items-start gap-3">
-                    <Clock className="mt-0.5 size-4 shrink-0 text-forest/40" />
+                    <Clock className="mt-0.5 size-4 shrink-0 text-forest/60" />
                     <div>
-                      <dt className="text-xs text-forest/40">Hours</dt>
+                      <dt className="text-xs text-forest/60">Hours</dt>
                       <dd className="text-sm font-medium text-forest">
                         {venue.hours_note}
                       </dd>
@@ -365,9 +414,9 @@ export default async function VenueDetailPage({
 
                 {venue.website_url && (
                   <div className="flex items-start gap-3">
-                    <Globe className="mt-0.5 size-4 shrink-0 text-forest/40" />
+                    <Globe className="mt-0.5 size-4 shrink-0 text-forest/60" />
                     <div>
-                      <dt className="text-xs text-forest/40">Website</dt>
+                      <dt className="text-xs text-forest/60">Website</dt>
                       <dd className="text-sm">
                         <a
                           href={venue.website_url}
@@ -392,7 +441,7 @@ export default async function VenueDetailPage({
                   <div className="flex items-start gap-3">
                     <CheckCircle className="mt-0.5 size-4 shrink-0 text-sage" />
                     <div>
-                      <dt className="text-xs text-forest/40">Last verified</dt>
+                      <dt className="text-xs text-forest/60">Last verified</dt>
                       <dd className="text-sm font-medium text-forest">{verifiedDate}</dd>
                     </div>
                   </div>
@@ -403,7 +452,7 @@ export default async function VenueDetailPage({
             {/* Features */}
             {(venue.af_minibar || venue.zero_proof_pairing) && (
               <div className="rounded-2xl border border-sandstone/30 bg-white p-6">
-                <h3 className="text-xs font-medium uppercase tracking-widest text-forest/40">
+                <h3 className="text-xs font-medium uppercase tracking-widest text-forest/60">
                   Features
                 </h3>
                 <ul className="mt-3 space-y-2">
@@ -440,14 +489,14 @@ export default async function VenueDetailPage({
                   href={`/venues/${v.slug}`}
                   className="group rounded-2xl border border-sandstone/30 bg-white p-5 transition-shadow hover:shadow-md"
                 >
-                  <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-forest/40">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-forest/60">
                     {v.category}
                   </span>
                   <h3 className="mt-1 font-serif text-lg font-bold text-forest">
                     {v.name}
                   </h3>
                   <div className="mt-2 flex items-center gap-2">
-                    <Droplets className="size-3 text-forest/40" />
+                    <Droplets className="size-3 text-forest/60" />
                     <span className="text-sm font-medium text-forest">
                       {v.dry_score}/5
                     </span>
@@ -483,7 +532,7 @@ export default async function VenueDetailPage({
               </h3>
               <p className="mt-1 text-sm text-forest/60">
                 Our AI concierge builds itineraries using venues like {venue.name} —
-                grounded in verified data, never hallucinated.
+                grounded in verified, editorially reviewed venue data.
               </p>
               <Link
                 href="/plan"
@@ -510,6 +559,15 @@ export default async function VenueDetailPage({
       </div>
 
       <Footer />
+
+      {/* Sticky mobile booking CTA */}
+      {outboundUrl && (
+        <StickyBookingBar
+          venueName={venue.name}
+          ctaText={getCTAText(venue.category)}
+          ctaUrl={`/go/${venue.id}?source=detail_page`}
+        />
+      )}
     </div>
   );
 }

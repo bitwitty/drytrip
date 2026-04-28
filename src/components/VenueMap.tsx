@@ -94,9 +94,16 @@ export default function VenueMap({
     if (!ready || !mapRef.current) return;
     const map = mapRef.current;
 
-    // Remove existing layers/sources
-    ["venue-clusters", "venue-cluster-count", "venue-points", "venue-highlight"].forEach((id) => {
-      if (map.getLayer(id)) map.removeLayer(id);
+    // Remove existing layers, sources, and event listeners
+    const layerIds = ["venue-clusters", "venue-cluster-count", "venue-points", "venue-highlight"];
+    layerIds.forEach((id) => {
+      if (map.getLayer(id)) {
+        // Remove all event listeners for this layer to prevent accumulation
+        map.off("click", id);
+        map.off("mouseenter", id);
+        map.off("mouseleave", id);
+        map.removeLayer(id);
+      }
     });
     if (map.getSource("venues")) map.removeSource("venues");
 

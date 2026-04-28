@@ -67,6 +67,7 @@ export default function PlanPage() {
   const [input, setInput] = useState("");
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, "up" | "down">>({});
   const conversationStarted = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -80,6 +81,11 @@ export default function PlanPage() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) setUserEmail(saved);
   }, []);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const isLoading = status === "streaming" || status === "submitted";
   const assistantMessages = messages.filter((m) => m.role === "assistant").length;
@@ -239,10 +245,10 @@ export default function PlanPage() {
             </div>
 
             {/* Trust strip */}
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-xs text-forest/40 sm:gap-6">
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-xs text-forest/60 sm:gap-6">
               <span className="flex items-center gap-1.5">
                 <Droplets className="size-3.5" />
-                107 verified venues
+                100+ verified venues
               </span>
               <span className="flex items-center gap-1.5">
                 <Shield className="size-3.5" />
@@ -352,11 +358,12 @@ export default function PlanPage() {
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         )}
 
         {/* Chat input or email gate */}
-        <div className="sticky bottom-0 bg-linen pb-6 pt-2">
+        <div className="sticky bottom-0 bg-linen pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2">
           {/* Action bar: email plan + copy */}
           {!isEmpty && assistantMessages > 0 && !isLoading && !needsEmail && (
             <div className="mb-2 flex items-center gap-2">
@@ -365,7 +372,7 @@ export default function PlanPage() {
                   onSubmit={handleEmailPromptSubmit}
                   className="flex flex-1 items-center gap-2 rounded-xl border border-sandstone/50 bg-white px-3 py-2"
                 >
-                  <Mail className="size-3.5 shrink-0 text-forest/40" />
+                  <Mail className="size-3.5 shrink-0 text-forest/60" />
                   <input
                     type="email"
                     required
@@ -394,7 +401,7 @@ export default function PlanPage() {
                   <button
                     onClick={handleEmailPlan}
                     disabled={emailPlanStatus === "loading"}
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-forest/40 transition-colors hover:bg-sandstone/20 hover:text-forest/60 disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-forest/60 transition-colors hover:bg-sandstone/20 hover:text-forest/60 disabled:opacity-50"
                   >
                     {emailPlanStatus === "loading" ? (
                       <Loader2 className="size-3 animate-spin" />
@@ -411,7 +418,7 @@ export default function PlanPage() {
                   </button>
                   <button
                     onClick={handleCopyPlan}
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-forest/40 transition-colors hover:bg-sandstone/20 hover:text-forest/60"
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-forest/60 transition-colors hover:bg-sandstone/20 hover:text-forest/60"
                   >
                     {copied ? (
                       <Check className="size-3 text-sage" />

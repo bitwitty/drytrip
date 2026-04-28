@@ -42,13 +42,13 @@ export default function CookieConsent() {
     <div
       role="dialog"
       aria-label="Cookie consent"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#E8E4DD] bg-[#F9F7F2] px-6 py-5 shadow-[0_-4px_24px_rgba(27,48,34,0.06)]"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-mist bg-linen px-6 py-5 shadow-[0_-4px_24px_rgba(27,48,34,0.06)]"
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm leading-relaxed text-[#1B3022]/80" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-          We use analytics cookies to understand how people use Dry Trip — which venues get attention, 
+        <p className="text-sm leading-relaxed text-forest/80">
+          We use analytics cookies to understand how people use Dry Trip — which venues get attention,
           which AI suggestions land, and where we can improve.{" "}
-          <a href="/privacy" className="underline underline-offset-2 hover:text-[#1B3022]">
+          <a href="/privacy" className="underline underline-offset-2 hover:text-forest">
             Privacy policy
           </a>
           .
@@ -56,15 +56,13 @@ export default function CookieConsent() {
         <div className="flex shrink-0 items-center gap-4">
           <button
             onClick={decline}
-            className="text-sm text-[#1B3022]/50 underline underline-offset-2 hover:text-[#1B3022] transition-colors"
-            style={{ fontFamily: "'Montserrat', sans-serif" }}
+            className="text-sm text-forest/50 underline underline-offset-2 hover:text-forest transition-colors"
           >
             Decline
           </button>
           <button
             onClick={accept}
-            className="rounded-lg bg-[#1B3022] px-5 py-2 text-sm font-medium text-[#F9F7F2] transition-colors hover:bg-[#1B3022]/85"
-            style={{ fontFamily: "'Montserrat', sans-serif" }}
+            className="rounded-lg bg-forest px-5 py-2 text-sm font-medium text-linen transition-colors hover:bg-forest/85"
           >
             Accept
           </button>
