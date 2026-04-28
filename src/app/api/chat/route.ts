@@ -4,29 +4,15 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TRIP_PLANNER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
-// Simple in-memory rate limiter
-const rateLimits = new Map<string, number[]>();
-
-function checkRateLimit(ip: string): { allowed: boolean; message?: string } {
-  const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-
-  const timestamps = rateLimits.get(ip) || [];
-  const recent = timestamps.filter((t) => now - t < dayMs);
-
-  if (recent.length >= 100) {
-    return {
-      allowed: false,
-      message:
-        "You've been busy planning! Come back tomorrow for more recommendations.",
-    };
-  }
-
-  recent.push(now);
-  rateLimits.set(ip, recent);
-  return { allowed: true };
-}
+// Persistent rate limiter: 100 messages per IP per 24h, survives deploys
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(100, "24 h"),
+  prefix: "drytrip:chat",
+});
 
 export async function POST(req: NextRequest) {
   // Block cross-origin requests (CSRF protection)
@@ -50,17 +36,19 @@ export async function POST(req: NextRequest) {
 
   const posthog = getPostHogClient();
 
-  const rateCheck = checkRateLimit(ip);
-  if (!rateCheck.allowed) {
+  const { success } = await ratelimit.limit(ip);
+  if (!success) {
     posthog.capture({
       distinctId,
       event: "chat_rate_limited",
       properties: { scope: "ip_daily", ip },
     });
-    return new Response(JSON.stringify({ error: rateCheck.message }), {
-      status: 429,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "You've been busy planning! Come back tomorrow for more recommendations.",
+      }),
+      { status: 429, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   try {

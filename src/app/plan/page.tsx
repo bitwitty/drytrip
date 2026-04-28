@@ -75,6 +75,7 @@ export default function PlanPage() {
   const [copied, setCopied] = useState(false);
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const [emailPromptInput, setEmailPromptInput] = useState("");
+  const [honeypot, setHoneypot] = useState("");
 
   // Restore email from localStorage on mount
   useEffect(() => {
@@ -113,7 +114,7 @@ export default function PlanPage() {
     posthog?.capture("email_gate_completed", { source: "plan" });
   }
 
-  async function sendPlanEmail(email: string) {
+  async function sendPlanEmail(email: string, hp = honeypot) {
     setEmailPlanStatus("loading");
     try {
       const res = await fetch("/api/email-plan", {
@@ -121,6 +122,7 @@ export default function PlanPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
+          honeypot: hp,
           messages: messages.map((m) => ({
             role: m.role,
             content: getTextContent(m),
@@ -163,8 +165,8 @@ export default function PlanPage() {
     posthog?.identify(email, { email });
     posthog?.capture("email_gate_completed", { source: "plan_email_prompt" });
 
-    // Send the plan
-    await sendPlanEmail(email);
+    // Send the plan — pass the current honeypot value
+    await sendPlanEmail(email, honeypot);
   }
 
   function handleCopyPlan() {
@@ -372,6 +374,17 @@ export default function PlanPage() {
                   onSubmit={handleEmailPromptSubmit}
                   className="flex flex-1 items-center gap-2 rounded-xl border border-sandstone/50 bg-white px-3 py-2"
                 >
+                  {/* Honeypot: hidden from real users, bots fill it automatically */}
+                  <input
+                    type="text"
+                    name="website"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    style={{ display: "none" }}
+                  />
                   <Mail className="size-3.5 shrink-0 text-forest/60" />
                   <input
                     type="email"

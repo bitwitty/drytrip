@@ -2,6 +2,8 @@ import { Resend } from "resend";
 import { NextRequest } from "next/server";
 import { buildPlanEmailHtml } from "@/lib/email-template";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 // Lazy-init to avoid crashing when RESEND_API_KEY isn't set yet
 let _resend: Resend | null = null;
@@ -11,21 +13,12 @@ function getResend(): Resend | null {
   return _resend;
 }
 
-// Rate limiter: 5 emails per IP per day
-const emailRateLimits = new Map<string, number[]>();
-
-function checkEmailRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-  const timestamps = emailRateLimits.get(ip) || [];
-  const recent = timestamps.filter((t) => now - t < dayMs);
-
-  if (recent.length >= 5) return false;
-
-  recent.push(now);
-  emailRateLimits.set(ip, recent);
-  return true;
-}
+// Persistent rate limiter: 5 emails per IP per 24h, survives deploys
+const emailRatelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, "24 h"),
+  prefix: "drytrip:email",
+});
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -43,7 +36,8 @@ export async function POST(req: NextRequest) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "unknown";
 
-  if (!checkEmailRateLimit(ip)) {
+  const { success } = await emailRatelimit.limit(ip);
+  if (!success) {
     return Response.json(
       { error: "Too many emails today. Try again tomorrow." },
       { status: 429 }
@@ -51,10 +45,17 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { email, messages } = body as {
+  const { email, honeypot, messages } = body as {
     email?: string;
+    honeypot?: string;
     messages?: Array<{ role: string; content: string }>;
   };
+
+  // Honeypot: bots fill this hidden field, real users never do.
+  // Return 200 so the bot thinks it succeeded and doesn't retry.
+  if (honeypot) {
+    return Response.json({ success: true });
+  }
 
   // Validate email
   if (!email || !EMAIL_REGEX.test(email)) {
