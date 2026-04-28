@@ -70,13 +70,30 @@ async function getLondonVenueCount(): Promise<number> {
   }
 }
 
+async function getWaitlistCount(): Promise<number> {
+  try {
+    const query = (async () => {
+      const { count } = await supabaseAdmin
+        .from("waitlist")
+        .select("*", { count: "exact", head: true });
+      return count ?? 0;
+    })();
+    return await withTimeout(query, 5000, 0);
+  } catch {
+    return 0;
+  }
+}
+
 export default async function Home() {
-  const [featuredVenue, londonVenueCount] = await Promise.all([
+  const [featuredVenue, londonVenueCount, waitlistCount] = await Promise.all([
     getFeaturedVenue(),
     getLondonVenueCount(),
+    getWaitlistCount(),
   ]);
 
   const londonCountDisplay = londonVenueCount > 0 ? londonVenueCount : 107;
+  // Only show social proof if we have a meaningful number; round down to nearest 50
+  const waitlistDisplay = waitlistCount > 50 ? Math.floor(waitlistCount / 50) * 50 : 0;
 
   const organizationJsonLd = {
     "@context": "https://schema.org",
@@ -115,9 +132,9 @@ export default async function Home() {
               Travel is architecturally alcoholic.
             </h1>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-forest/70">
-              Dry Trip is an editorially curated alcohol-free travel directory.
-              Every venue clears an editor before it goes live. Every venue is
-              scored on one rubric. Built one city at a time.
+              An editorially curated alcohol-free travel directory. Every venue
+              clears an editor before it goes live. Every venue is scored on one
+              rubric. Built one city at a time.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
@@ -134,7 +151,12 @@ export default async function Home() {
               </Link>
             </div>
             <div className="mt-6">
-              <p className="text-xs text-forest/50">Get notified when new cities launch</p>
+              <p className="text-xs text-forest/50">
+                Get notified when new cities launch
+                {waitlistDisplay > 0 && (
+                  <span className="ml-1.5 text-forest/40">· Join {waitlistDisplay}+ others</span>
+                )}
+              </p>
               <div className="mt-2 max-w-sm">
                 <WaitlistForm
                   buttonText="Notify me"

@@ -8,7 +8,17 @@ export async function GET(request: Request) {
   const subtitle = searchParams.get("subtitle");
 
   const tagline = subtitle
-    ?? "Luxury travel rated for the alcohol-free experience. Verified venues, AI trip planning, zero compromises.";
+    ?? "Editorially curated alcohol-free travel directory. Every venue scored on one rubric, built one city at a time.";
+
+  // Fetch brand fonts for ImageResponse
+  const [cormorantData, montserratData] = await Promise.all([
+    fetch(
+      "https://fonts.gstatic.com/s/cormorantgaramond/v22/co3YmX5slCNuHLi8bLeY9MK7whWMhyjYqXtK.woff2"
+    ).then((r) => r.arrayBuffer()),
+    fetch(
+      "https://fonts.gstatic.com/s/montserrat/v26/JTUSjIg1_i6t8kCHKm459WlhyyTh89Y.woff2"
+    ).then((r) => r.arrayBuffer()),
+  ]);
 
   return new ImageResponse(
     (
@@ -52,7 +62,8 @@ export async function GET(request: Request) {
         <div
           style={{
             fontSize: 48,
-            fontWeight: 300,
+            fontWeight: 600,
+            fontFamily: "Cormorant Garamond",
             color: "#F9F7F2",
             letterSpacing: "0.25em",
             textTransform: "uppercase" as const,
@@ -78,6 +89,7 @@ export async function GET(request: Request) {
             style={{
               fontSize: 36,
               fontWeight: 600,
+              fontFamily: "Cormorant Garamond",
               color: "#F9F7F2",
               textAlign: "center",
               maxWidth: 900,
@@ -93,6 +105,7 @@ export async function GET(request: Request) {
         <div
           style={{
             fontSize: title ? 20 : 22,
+            fontFamily: "Montserrat",
             color: "#F9F7F2",
             opacity: 0.6,
             textAlign: "center",
@@ -108,6 +121,20 @@ export async function GET(request: Request) {
     {
       width: 1200,
       height: 630,
+      fonts: [
+        {
+          name: "Cormorant Garamond",
+          data: cormorantData,
+          weight: 600,
+          style: "normal",
+        },
+        {
+          name: "Montserrat",
+          data: montserratData,
+          weight: 400,
+          style: "normal",
+        },
+      ],
     }
   );
 }
