@@ -13,7 +13,17 @@ export async function POST(req: NextRequest) {
   }
 
   if (password === adminPassword) {
-    return NextResponse.json({ ok: true });
+    // Set cookie server-side so it carries HttpOnly — JS in the browser cannot
+    // read or forge it, which closes the document.cookie bypass.
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set("dt_admin", "1", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 86400, // 1 day
+      path: "/",
+    });
+    return response;
   }
 
   const ip =

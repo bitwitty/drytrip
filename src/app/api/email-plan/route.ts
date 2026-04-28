@@ -30,9 +30,17 @@ function checkEmailRateLimit(ip: string): boolean {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
+  // Block cross-origin requests (CSRF protection)
+  const origin = req.headers.get("origin");
+  const host = req.headers.get("host");
+  if (origin && host && !origin.endsWith(host)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Prefer x-real-ip (set by Vercel's infrastructure, not spoofable by clients)
   const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "unknown";
 
   if (!checkEmailRateLimit(ip)) {
