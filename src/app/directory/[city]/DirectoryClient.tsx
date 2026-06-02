@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import posthog from "posthog-js";
 import Image from "next/image";
-import { Droplets, Wine, MapPin, Search, Sparkles, ArrowUpDown, ChevronDown, Map, X } from "lucide-react";
+import { Droplets, Wine, MapPin, Search, Sparkles, ArrowUpDown, Map, X } from "lucide-react";
 import WaitlistForm from "@/components/WaitlistForm";
 import type { Venue } from "@/lib/types";
 
@@ -46,21 +46,7 @@ export default function DirectoryClient({
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [neighborhoodFilter, setNeighborhoodFilter] = useState<string>("All");
   const [sortByScore, setSortByScore] = useState(false);
-  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
-  const cityDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close city dropdown on click outside
-  useEffect(() => {
-    if (!cityDropdownOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target as Node)) {
-        setCityDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [cityDropdownOpen]);
 
   function handleCategoryFilter(value: string) {
     setCategoryFilter(value);
@@ -110,41 +96,13 @@ export default function DirectoryClient({
       {/* Header */}
       <header className="mx-auto max-w-5xl px-6 pb-4 pt-10 md:px-12 md:pt-16">
         <div className="flex items-baseline gap-2">
-          {/* City selector */}
-          <div className="relative" ref={cityDropdownRef}>
-            <button
-              onClick={() => setCityDropdownOpen((o) => !o)}
-              aria-expanded={cityDropdownOpen}
-              aria-haspopup="listbox"
-              aria-label={`Select city, currently ${cityConfig.display}`}
-              className="flex items-center gap-1 font-serif text-3xl font-semibold leading-tight tracking-tight text-forest transition-colors hover:text-forest/70 sm:text-4xl md:text-5xl"
+          {/* City title — single city for now, dropdown re-enabled when more cities launch */}
+          <div>
+            <span
+              className="font-serif text-3xl font-semibold leading-tight tracking-tight text-forest sm:text-4xl md:text-5xl"
             >
               {cityConfig.display}
-              <ChevronDown className="mt-1 size-6 shrink-0 text-forest/60 md:size-7" />
-            </button>
-
-            {cityDropdownOpen && (
-              <div
-                role="listbox"
-                aria-label="Select a city"
-                className="absolute left-0 top-full z-10 mt-2 min-w-[160px] overflow-hidden rounded-xl border border-sandstone/40 bg-white shadow-md"
-              >
-                {Object.entries(cities).map(([slug, config]) => (
-                  <Link
-                    key={slug}
-                    href={`/directory/${slug}`}
-                    role="option"
-                    aria-selected={slug === citySlug}
-                    onClick={() => setCityDropdownOpen(false)}
-                    className={`block px-4 py-3 text-sm font-medium text-forest hover:bg-linen ${
-                      slug === citySlug ? "bg-linen/60" : ""
-                    }`}
-                  >
-                    {config.display}
-                  </Link>
-                ))}
-              </div>
-            )}
+            </span>
           </div>
 
           <span className="font-serif text-3xl font-semibold leading-tight tracking-tight text-forest sm:text-4xl md:text-5xl">

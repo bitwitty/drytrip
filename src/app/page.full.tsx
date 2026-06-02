@@ -255,7 +255,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* The Dry Score */}
+      {/* What is a Dry Score */}
       <section className="border-t border-sandstone/50 bg-white/40">
         <div className="mx-auto max-w-5xl px-6 py-16 md:px-12">
           <div className="grid gap-12 md:grid-cols-2 md:items-center">
@@ -307,7 +307,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* What the directory is built on */}
+      {/* Features */}
       <section className="border-t border-sandstone/50">
         <div className="mx-auto max-w-5xl px-6 py-20 md:px-12">
           <h2 className="text-center font-serif text-3xl tracking-tight text-forest">
@@ -353,7 +353,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Newsletter signup */}
+      {/* Newsletter signup — below the fold */}
       <section id="newsletter" className="border-t border-sandstone/50 bg-white/40">
         <div className="mx-auto max-w-2xl px-6 py-20 text-center md:px-12">
           <h2 className="font-serif text-3xl tracking-tight text-forest">

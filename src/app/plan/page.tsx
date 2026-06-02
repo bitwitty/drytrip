@@ -28,9 +28,9 @@ const STORAGE_KEY = "drytrip_email";
 
 const suggestedPrompts = [
   "Plan a 3-day trip to London with great nightlife",
-  "Best alcohol-free bars in Berlin",
-  "Date night in Melbourne, no alcohol",
-  "Zero-proof cocktails in Los Angeles",
+  "Best alcohol-free bars in Soho",
+  "Date night in Mayfair, no alcohol",
+  "Zero-proof cocktails in Shoreditch",
 ];
 
 function getTextContent(message: UIMessage): string {
@@ -250,7 +250,7 @@ export default function PlanPage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-xs text-forest/60 sm:gap-6">
               <span className="flex items-center gap-1.5">
                 <Droplets className="size-3.5" />
-                100+ verified venues
+                50 individually audited venues
               </span>
               <span className="flex items-center gap-1.5">
                 <Shield className="size-3.5" />
@@ -258,7 +258,7 @@ export default function PlanPage() {
               </span>
               <span className="flex items-center gap-1.5">
                 <MapPin className="size-3.5" />
-                7 cities worldwide
+                London — more cities coming soon
               </span>
             </div>
           </div>

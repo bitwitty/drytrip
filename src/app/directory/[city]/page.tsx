@@ -12,12 +12,13 @@ export const revalidate = 86400; // revalidate once per day
 
 const CITIES: Record<string, { display: string; dbValue: string; center: [number, number] }> = {
   london: { display: "London", dbValue: "London", center: [-0.1276, 51.5074] },
-  "new-york": { display: "New York", dbValue: "New York", center: [-73.9857, 40.7484] },
-  berlin: { display: "Berlin", dbValue: "Berlin", center: [13.405, 52.52] },
-  melbourne: { display: "Melbourne", dbValue: "Melbourne", center: [144.9631, -37.8136] },
-  "los-angeles": { display: "Los Angeles", dbValue: "Los Angeles", center: [-118.2437, 34.0522] },
-  copenhagen: { display: "Copenhagen", dbValue: "Copenhagen", center: [12.5683, 55.6761] },
-  dubai: { display: "Dubai", dbValue: "Dubai", center: [55.2708, 25.2048] },
+  // Coming soon — re-enable as each city is audited
+  // "new-york": { display: "New York", dbValue: "New York", center: [-73.9857, 40.7484] },
+  // berlin: { display: "Berlin", dbValue: "Berlin", center: [13.405, 52.52] },
+  // melbourne: { display: "Melbourne", dbValue: "Melbourne", center: [144.9631, -37.8136] },
+  // "los-angeles": { display: "Los Angeles", dbValue: "Los Angeles", center: [-118.2437, 34.0522] },
+  // copenhagen: { display: "Copenhagen", dbValue: "Copenhagen", center: [12.5683, 55.6761] },
+  // dubai: { display: "Dubai", dbValue: "Dubai", center: [55.2708, 25.2048] },
 };
 
 /* ------------------------------------------------------------------ */

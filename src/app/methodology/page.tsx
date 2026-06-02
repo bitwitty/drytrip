@@ -33,31 +33,31 @@ const scores = [
     score: 1,
     label: "Basic",
     description:
-      "Standard soft drinks and maybe one or two simple mocktails. The alcohol-free experience is an afterthought.",
+      "Standard soft drinks only — a lime & soda or virgin mojito if you ask. The alcohol-free experience is an afterthought.",
   },
   {
     score: 2,
     label: "Some options",
     description:
-      "A few NA cocktails on the menu, possibly using NA spirits. Better than most, but not a destination for it.",
+      "A few NA options using commercial spirits (Seedlip, Lyre's) or simple mocktails. Better than most, but not a destination for it.",
   },
   {
     score: 3,
     label: "Dedicated section",
     description:
-      "A proper alcohol-free section with 5+ distinct options. House-made elements like infusions or shrubs. Someone here cares about NA guests.",
+      "A dedicated NA section with 3+ thoughtful options. House-made elements — not just commercial mixers. Someone here actively cares about non-drinkers.",
   },
   {
     score: 4,
     label: "Excellent",
     description:
-      "A thoughtful NA programme with craft cocktails, named NA spirits, and real creativity. You'd come here specifically for the non-alcoholic drinks.",
+      "A creative NA programme with 5+ options, house-made ingredients, equal presentation and pricing to alcoholic drinks. You'd come here for the NA drinks.",
   },
   {
     score: 5,
     label: "World-class",
     description:
-      "An NA-forward venue with zero-proof pairings, bespoke programmes, or a reputation built on alcohol-free excellence. These are rare.",
+      "NA is core to the venue's identity — full parity with the alcoholic menu, proprietary programmes, zero-proof pairings. These are rare.",
   },
 ];
 

@@ -70,13 +70,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch all published venues across all cities
+    // Fetch published London venues (London-only launch; expand when more cities are audited)
     const { data: venues } = await supabaseAdmin
       .from("venues")
       .select(
         "name, slug, neighborhood, city, category, dry_score, top_na_drink, short_description, vibe_tags, price_range, hours_note, ai_context, booking_url, website_url"
       )
-      .eq("status", "Published");
+      .eq("status", "Published")
+      .eq("city", "London");
 
     const venueContext = venues
       ? JSON.stringify(
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
 
     const result = streamText({
       model: anthropic("claude-sonnet-4-5-20250929"),
-      system: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venues?.length ?? 0} verified venues across all cities)\n${venueContext}`,
+      system: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venues?.length ?? 0} individually audited London venues)\n${venueContext}`,
       messages: await convertToModelMessages(messages),
     });
 

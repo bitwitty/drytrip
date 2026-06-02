@@ -1,18 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * Protect /admin/review from unauthenticated access.
- * The dt_admin cookie is HttpOnly (set server-side in /api/admin/auth),
- * so it cannot be forged via document.cookie in the browser.
- */
+// Routes hidden behind the coming-soon gate (code is kept, just not public)
+const COMING_SOON_HIDDEN = [
+  "/directory",
+  "/venues",
+  "/plan",
+  "/methodology",
+  "/edit",
+  "/go",
+];
+
 export function middleware(request: NextRequest) {
-  const cookie = request.cookies.get("dt_admin");
-  if (cookie?.value !== "1") {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+  const { pathname } = request.nextUrl;
+
+  // Admin auth guard
+  if (pathname === "/admin/review") {
+    const cookie = request.cookies.get("dt_admin");
+    if (cookie?.value !== "1") {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+    return NextResponse.next();
   }
+
+  // Coming-soon redirect: hide public pages until launch
+  if (COMING_SOON_HIDDEN.some((route) => pathname === route || pathname.startsWith(route + "/"))) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: "/admin/review",
+  matcher: [
+    "/admin/review",
+    "/directory/:path*",
+    "/venues/:path*",
+    "/plan",
+    "/methodology",
+    "/edit/:path*",
+    "/go/:path*",
+  ],
 };
