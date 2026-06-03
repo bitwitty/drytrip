@@ -238,12 +238,11 @@ function addVenueLayers(
           <p style="font-size: 17px; font-weight: 700; color: #1B3022; margin: 0 0 6px; line-height: 1.2;">
             ${props.name}
           </p>
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: ${props.top_na_drink ? "8px" : "10px"};">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
             <span style="background: ${props.color}; color: white; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;">
               ${props.dry_score}/5
             </span>
           </div>
-          ${props.top_na_drink ? `<p style="font-size: 11px; color: #1B3022; opacity: 0.6; margin: 0 0 10px;">★ ${props.top_na_drink}</p>` : ""}
           <a href="/venues/${props.slug}" style="font-size: 12px; font-weight: 600; color: #1B3022; text-decoration: none;">
             View details →
           </a>
