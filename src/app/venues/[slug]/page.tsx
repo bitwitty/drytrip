@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Droplets, Wine, MapPin, Globe, Clock, DollarSign, ExternalLink, CheckCircle } from "lucide-react";
+import { Droplets, Wine, MapPin, Globe, Clock, DollarSign, ExternalLink, CheckCircle, Navigation } from "lucide-react";
 import { Sparkles } from "lucide-react";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 import Nav from "@/components/Nav";
@@ -418,6 +418,26 @@ export default async function VenueDetailPage({
                     </div>
                   </div>
                 )}
+
+                {/* Get directions */}
+                <div className="flex items-start gap-3">
+                  <Navigation className="mt-0.5 size-4 shrink-0 text-forest/60" />
+                  <div>
+                    <dt className="text-xs text-forest/60">Directions</dt>
+                    <dd className="text-sm">
+                      <a
+                        href={venue.latitude && venue.longitude
+                          ? `https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}`
+                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + " " + (venue.neighborhood ?? "") + " London")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-forest underline underline-offset-2 transition-colors hover:text-forest/70"
+                      >
+                        Get directions
+                      </a>
+                    </dd>
+                  </div>
+                </div>
 
                 {verifiedDate && (
                   <div className="flex items-start gap-3">
