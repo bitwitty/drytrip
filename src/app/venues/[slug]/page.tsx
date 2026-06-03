@@ -280,25 +280,7 @@ export default async function VenueDetailPage({
               </p>
             )}
 
-            {/* Why we recommend it */}
-            {bullets.length > 0 && (
-              <div className="mt-8">
-                <h2 className="font-serif text-2xl text-forest">
-                  Why we recommend it
-                </h2>
-                <ul className="mt-4 space-y-3">
-                  {bullets.map((bullet, i) => (
-                    <li
-                      key={i}
-                      className="flex gap-3 text-sm leading-relaxed text-forest/70"
-                    >
-                      <span className="mt-1 block size-1.5 shrink-0 rounded-full bg-sandstone" />
-                      {bullet}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Why we recommend it — hidden until editorially rewritten */}
 
             {/* Mini map */}
             {venue.latitude != null && venue.longitude != null && (
