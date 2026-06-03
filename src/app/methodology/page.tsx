@@ -57,7 +57,7 @@ const scores = [
     score: 5,
     label: "World-class",
     description:
-      "NA is core to the venue's identity — full parity with the alcoholic menu, proprietary programmes, zero-proof pairings. These are rare.",
+      "NA is core to the venue's identity — full parity with the alcoholic menu, house-built programmes, zero-proof pairings. These are rare.",
   },
 ];
 
@@ -71,10 +71,10 @@ export default function MethodologyPage() {
           How we rate venues
         </h1>
         <p className="mt-4 text-lg leading-relaxed text-forest/70">
-          The Dry Score is our proprietary rating for the quality of a
+          The Dry Score is a one-to-five rating for the quality of a
           venue&rsquo;s alcohol-free experience. It&rsquo;s not about whether a
           place serves alcohol — it&rsquo;s about how well they serve people who
-          don&rsquo;t drink.
+          don&rsquo;t drink. The rubric is published here in full.
         </p>
 
         {/* Dry Score scale */}

@@ -19,26 +19,26 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: {
-    default: "Dry Trip — Clear-headed luxury travel",
+    default: "Dry Trip — Alcohol-free travel directory",
     template: "%s | Dry Trip",
   },
   description:
-    "AI-powered trip planning backed by verified alcohol-free venue data across 7 cities. Browse the directory and plan your next trip.",
+    "An editorially curated alcohol-free travel directory. Every venue individually audited and scored on one rubric. London is live — more cities coming.",
   metadataBase: new URL("https://drytrip.co"),
   openGraph: {
     type: "website",
     siteName: "Dry Trip",
-    title: "Dry Trip — Clear-headed luxury travel",
+    title: "Dry Trip — Alcohol-free travel directory",
     description:
-      "Luxury travel rated for the alcohol-free experience. Verified venues, AI trip planning, zero compromises.",
+      "An editorially curated alcohol-free travel directory. Every venue individually audited and scored on one rubric.",
     locale: "en_GB",
     images: [{ url: "/api/og", width: 1200, height: 630, alt: "Dry Trip" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dry Trip — Clear-headed luxury travel",
+    title: "Dry Trip — Alcohol-free travel directory",
     description:
-      "AI-powered trip planning backed by verified alcohol-free venue data.",
+      "An editorially curated alcohol-free travel directory. Every venue individually audited and scored on one rubric.",
   },
   icons: {
     icon: "/favicon.svg",

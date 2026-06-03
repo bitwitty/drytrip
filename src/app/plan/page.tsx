@@ -250,11 +250,11 @@ export default function PlanPage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-xs text-forest/60 sm:gap-6">
               <span className="flex items-center gap-1.5">
                 <Droplets className="size-3.5" />
-                50 individually audited venues
+                73 individually audited venues
               </span>
               <span className="flex items-center gap-1.5">
                 <Shield className="size-3.5" />
-                Grounded in verified data
+                Every venue editorially reviewed
               </span>
               <span className="flex items-center gap-1.5">
                 <MapPin className="size-3.5" />

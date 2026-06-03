@@ -513,8 +513,8 @@ export default async function VenueDetailPage({
                 Planning a trip around {venue.neighborhood ?? venue.city}?
               </h3>
               <p className="mt-1 text-sm text-forest/60">
-                Our AI concierge builds itineraries using venues like {venue.name} —
-                grounded in verified, editorially reviewed venue data.
+                Build an itinerary around venues like {venue.name} —
+                every recommendation from the directory, every venue individually audited.
               </p>
               <Link
                 href="/plan"

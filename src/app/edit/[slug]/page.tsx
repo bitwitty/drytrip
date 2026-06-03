@@ -198,8 +198,8 @@ export default async function ArticlePage({
                 Ready to plan your trip?
               </h3>
               <p className="mt-1 text-sm text-forest/60">
-                Our AI concierge builds personalised itineraries using verified
-                venue data — verified and editorially reviewed.
+                Build a personalised itinerary using the directory —
+                every venue individually audited and editorially reviewed.
               </p>
               <Link
                 href="/plan"

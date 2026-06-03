@@ -3,14 +3,14 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Plan a Trip",
   description:
-    "AI-powered trip planning backed by verified alcohol-free venue data. Tell us where you're going.",
+    "Plan an alcohol-free trip using editorially curated venue data. Every venue individually audited.",
   openGraph: {
     title: "Plan a Trip | Dry Trip",
     description:
-      "AI-powered trip planning backed by verified alcohol-free venue data. Tell us where you're going.",
+      "Plan an alcohol-free trip using editorially curated venue data. Every venue individually audited.",
     images: [
       {
-        url: "/api/og?title=Plan%20an%20Alcohol-Free%20Trip&subtitle=AI-powered%20planning%20backed%20by%20verified%20venue%20data",
+        url: "/api/og?title=Plan%20an%20Alcohol-Free%20Trip&subtitle=Every%20venue%20individually%20audited",
         width: 1200,
         height: 630,
         alt: "Plan an alcohol-free trip with Dry Trip",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Plan a Trip | Dry Trip",
     description:
-      "AI-powered trip planning backed by verified alcohol-free venue data.",
+      "Plan an alcohol-free trip using editorially curated venue data. Every venue individually audited.",
   },
 };
 

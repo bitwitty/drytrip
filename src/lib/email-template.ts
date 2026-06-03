@@ -89,7 +89,7 @@ export function buildPlanEmailHtml(messages: EmailMessage[]): string {
         Planned with <a href="https://drytrip.co/plan" style="color:#1B3022;text-decoration:underline;">Dry Trip</a> — clear-headed luxury travel.
       </p>
       <p style="margin:8px 0 0;font-size:11px;color:#1B302244;">
-        100+ verified venues across 7 cities. Every recommendation backed by real data.
+        73 London venues, individually audited. Every recommendation editorially reviewed.
       </p>
     </div>
 
