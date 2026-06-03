@@ -22,10 +22,11 @@ const nextConfig: NextConfig = {
               // Next.js requires unsafe-inline for its runtime scripts;
               // TinaCMS requires unsafe-eval in dev.
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' *.posthog.com",
-              "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
+              "style-src 'self' 'unsafe-inline' fonts.googleapis.com api.mapbox.com",
               "font-src 'self' fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
-              "connect-src 'self' *.supabase.co eu.i.posthog.com eu-assets.i.posthog.com api.anthropic.com",
+              "connect-src 'self' *.supabase.co eu.i.posthog.com eu-assets.i.posthog.com api.anthropic.com *.mapbox.com *.tiles.mapbox.com",
+              "worker-src 'self' blob:",
               "frame-ancestors 'none'",
             ].join("; "),
           },
