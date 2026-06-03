@@ -30,10 +30,7 @@ export default function Footer() {
             <Link href="/directory/london" className="text-sm text-forest/70 transition-colors hover:text-forest">
               Directory
             </Link>
-            <Link href="/edit" className="text-sm text-forest/70 transition-colors hover:text-forest">
-              The Edit
-            </Link>
-            <Link href="/plan" className="text-sm text-forest/70 transition-colors hover:text-forest">
+<Link href="/plan" className="text-sm text-forest/70 transition-colors hover:text-forest">
               Plan a Trip
             </Link>
             <Link href="/methodology" className="text-sm text-forest/70 transition-colors hover:text-forest">
