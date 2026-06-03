@@ -425,7 +425,7 @@ export default async function VenueDetailPage({
                   <div className="flex items-start gap-3">
                     <CheckCircle className="mt-0.5 size-4 shrink-0 text-sage" />
                     <div>
-                      <dt className="text-xs text-forest/60">Last verified</dt>
+                      <dt className="text-xs text-forest/60">Last reviewed</dt>
                       <dd className="text-sm font-medium text-forest">{verifiedDate}</dd>
                     </div>
                   </div>
