@@ -313,25 +313,7 @@ export default async function VenueDetailPage({
               </div>
             )}
 
-            {/* Top NA drink spotlight */}
-            {venue.top_na_drink && (
-              <div className="mt-8 rounded-2xl border border-sandstone/30 bg-white p-6">
-                <div className="flex items-center gap-2">
-                  <Wine className="size-5 text-forest/60" />
-                  <h3 className="text-xs font-medium uppercase tracking-widest text-forest/60">
-                    Top NA Drink
-                  </h3>
-                </div>
-                <p className="mt-2 font-serif text-xl font-semibold text-forest">
-                  {venue.top_na_drink}
-                </p>
-                {venue.na_drink_count && venue.na_drink_count > 1 && (
-                  <p className="mt-1 text-sm text-forest/50">
-                    Plus {venue.na_drink_count - 1} more non-alcoholic options
-                  </p>
-                )}
-              </div>
-            )}
+            {/* Top NA drink spotlight — hidden until editorially approved */}
 
             {/* Vibe tags */}
             {venue.vibe_tags && venue.vibe_tags.length > 0 && (

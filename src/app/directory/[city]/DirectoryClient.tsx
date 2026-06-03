@@ -402,20 +402,7 @@ function DirectoryVenueCard({ venue, onClickVenue }: { venue: Venue; onClickVenu
             </p>
           )}
 
-          {/* Top NA Drink */}
-          {venue.top_na_drink && (
-            <div className="mt-4 flex items-center gap-2 rounded-lg bg-linen px-3 py-2">
-              <Wine className="size-4 shrink-0 text-forest/60" />
-              <div>
-                <span className="text-[10px] font-medium uppercase tracking-widest text-forest/60">
-                  Top NA Drink
-                </span>
-                <p className="text-sm font-medium text-forest">
-                  {venue.top_na_drink}
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Top NA Drink — hidden until editorially approved */}
 
           {/* CTA text link */}
           <p className="mt-4 text-xs font-medium text-forest/50 transition-colors group-hover:text-forest">
