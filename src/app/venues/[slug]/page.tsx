@@ -273,14 +273,16 @@ export default async function VenueDetailPage({
         <div className="grid gap-12 lg:grid-cols-3">
           {/* Left column — details */}
           <div className="lg:col-span-2">
-            {/* Short description */}
-            {venue.short_description && (
+            {/* Editorial description */}
+            {venue.description && venue.description !== "INSUFFICIENT_DATA" ? (
+              <p className="text-base leading-relaxed text-forest/70">
+                {venue.description}
+              </p>
+            ) : venue.short_description ? (
               <p className="text-lg leading-relaxed text-forest/80">
                 {venue.short_description}
               </p>
-            )}
-
-            {/* Why we recommend it — hidden until editorially rewritten */}
+            ) : null}
 
             {/* Mini map */}
             {venue.latitude != null && venue.longitude != null && (
