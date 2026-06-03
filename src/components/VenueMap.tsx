@@ -55,7 +55,7 @@ export default function VenueMap({
         document.head.appendChild(link);
       }
 
-      mapboxgl.default.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
+      mapboxgl.default.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "pk.eyJ1IjoiZHJ5dHJpcDIwMjYiLCJhIjoiY21vN3QyMWM2MDR4cDJxcTQ0bGUxNWV3MyJ9.iNbbmZaBjZtvcwWm5bgI3g";
 
       const map = new mapboxgl.default.Map({
         container: containerRef.current,
