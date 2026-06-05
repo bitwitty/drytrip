@@ -36,22 +36,21 @@ export async function POST(req: NextRequest) {
 
   const posthog = getPostHogClient();
 
-  const { success } = await ratelimit.limit(ip);
-  if (!success) {
-    posthog.capture({
-      distinctId,
-      event: "chat_rate_limited",
-      properties: { scope: "ip_daily", ip },
-    });
-    return new Response(
-      JSON.stringify({
-        error: "You've been busy planning! Come back tomorrow for more recommendations.",
-      }),
-      { status: 429, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
   try {
+    const { success } = await ratelimit.limit(ip);
+    if (!success) {
+      posthog.capture({
+        distinctId,
+        event: "chat_rate_limited",
+        properties: { scope: "ip_daily", ip },
+      });
+      return new Response(
+        JSON.stringify({
+          error: "You've been busy planning! Come back tomorrow for more recommendations.",
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
     const { messages } = await req.json();
 
     // Session-level rate limit (20 messages per session)
