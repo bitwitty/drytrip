@@ -8,11 +8,13 @@ import { ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 interface WaitlistFormProps {
   buttonText: string;
   successMessage: string;
+  votedCity?: string | null;
 }
 
 export default function WaitlistForm({
   buttonText,
   successMessage,
+  votedCity,
 }: WaitlistFormProps) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<
@@ -25,16 +27,20 @@ export default function WaitlistForm({
     setStatus("loading");
     setErrorMessage("");
 
-    const { error } = await supabase
-      .from("waitlist")
-      .insert([{ email: email.trim().toLowerCase(), variant: "A" }]);
+    const row: Record<string, string> = {
+      email: email.trim().toLowerCase(),
+      variant: "A",
+    };
+    if (votedCity) row.voted_city = votedCity;
+
+    const { error } = await supabase.from("waitlist").insert([row]);
 
     const normalizedEmail = email.trim().toLowerCase();
     if (error) {
       if (error.code === "23505") {
         setStatus("success");
         posthog?.identify(normalizedEmail, { email: normalizedEmail });
-        posthog?.capture("newsletter_subscribed");
+        posthog?.capture("newsletter_subscribed", { voted_city: votedCity ?? null });
       } else {
         setStatus("error");
         setErrorMessage("Something went wrong. Please try again.");
@@ -42,7 +48,7 @@ export default function WaitlistForm({
     } else {
       setStatus("success");
       posthog?.identify(normalizedEmail, { email: normalizedEmail });
-      posthog?.capture("newsletter_subscribed");
+      posthog?.capture("newsletter_subscribed", { voted_city: votedCity ?? null });
     }
   }
 
@@ -51,7 +57,10 @@ export default function WaitlistForm({
       <div className="space-y-3">
         <div className="flex items-center gap-3 text-forest">
           <CheckCircle className="size-5 shrink-0" />
-          <p className="font-serif text-lg italic">{successMessage}</p>
+          <p className="font-serif text-lg italic">
+            {successMessage}
+            {votedCity && ` Your vote for ${votedCity} is in.`}
+          </p>
         </div>
         <a
           href="https://www.instagram.com/drytrip.co"
@@ -68,8 +77,14 @@ export default function WaitlistForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-3 sm:flex-row sm:items-start"
+      className="flex flex-col gap-3"
     >
+      {votedCity && (
+        <p className="text-center text-sm text-forest/60">
+          Voting for <span className="font-medium text-forest">{votedCity}</span>
+        </p>
+      )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
       <div className="flex-1">
         <input
           type="email"
@@ -97,6 +112,7 @@ export default function WaitlistForm({
           </>
         )}
       </button>
+      </div>
     </form>
   );
 }
