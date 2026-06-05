@@ -107,16 +107,18 @@ export async function POST(req: NextRequest) {
 
     return result.toUIMessageStreamResponse();
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[chat] error:", errMsg, err);
     posthog.capture({
       distinctId,
       event: "chat_request_errored",
       properties: {
-        message: err instanceof Error ? err.message : String(err),
+        message: errMsg,
       },
     });
     posthog.captureException(err instanceof Error ? err : new Error(String(err)), distinctId);
     return new Response(
-      JSON.stringify({ error: "Something went wrong. Please try again." }),
+      JSON.stringify({ error: errMsg }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
