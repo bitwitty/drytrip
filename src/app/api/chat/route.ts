@@ -4,15 +4,6 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TRIP_PLANNER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { getPostHogClient } from "@/lib/posthog-server";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
-
-// Persistent rate limiter: 100 messages per IP per 24h, survives deploys
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(100, "24 h"),
-  prefix: "drytrip:chat",
-});
 
 export async function POST(req: NextRequest) {
   // Block cross-origin requests (CSRF protection)
@@ -37,20 +28,6 @@ export async function POST(req: NextRequest) {
   const posthog = getPostHogClient();
 
   try {
-    const { success } = await ratelimit.limit(ip);
-    if (!success) {
-      posthog.capture({
-        distinctId,
-        event: "chat_rate_limited",
-        properties: { scope: "ip_daily", ip },
-      });
-      return new Response(
-        JSON.stringify({
-          error: "You've been busy planning! Come back tomorrow for more recommendations.",
-        }),
-        { status: 429, headers: { "Content-Type": "application/json" } }
-      );
-    }
     const { messages } = await req.json();
 
     // Session-level rate limit (20 messages per session)
