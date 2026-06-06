@@ -130,7 +130,7 @@ export default async function Home() {
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <h1 className="font-serif text-3xl leading-tight tracking-tight text-forest sm:text-4xl md:text-5xl lg:text-6xl">
-              Travel is architecturally alcoholic.
+              The luxury travel guide for drinking less.
             </h1>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-forest/70">
               An editorially curated alcohol-free travel directory. Every venue
