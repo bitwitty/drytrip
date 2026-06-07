@@ -21,10 +21,15 @@ export async function GET(
   }
 
   // Determine redirect URL: booking_url > website_url > Google Maps
-  const baseUrl =
+  let baseUrl =
     venue.booking_url ||
     venue.website_url ||
     `https://www.google.com/maps/search/${encodeURIComponent(venue.name)}`;
+
+  // Ensure URL has a protocol — bare domains like "ravenrecords.com" break redirects
+  if (baseUrl && !/^https?:\/\//i.test(baseUrl)) {
+    baseUrl = `https://${baseUrl}`;
+  }
 
   // Append UTM params for attribution tracking
   let redirectUrl = baseUrl;

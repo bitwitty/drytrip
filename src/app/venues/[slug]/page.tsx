@@ -385,14 +385,15 @@ export default async function VenueDetailPage({
                       <dt className="text-xs text-forest/60">Website</dt>
                       <dd className="text-sm">
                         <a
-                          href={venue.website_url}
+                          href={/^https?:\/\//i.test(venue.website_url!) ? venue.website_url! : `https://${venue.website_url}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-medium text-forest underline underline-offset-2 transition-colors hover:text-forest/70"
                         >
                           {(() => {
                             try {
-                              return new URL(venue.website_url!).hostname.replace("www.", "");
+                              const raw = /^https?:\/\//i.test(venue.website_url!) ? venue.website_url! : `https://${venue.website_url}`;
+                              return new URL(raw).hostname.replace("www.", "");
                             } catch {
                               return "Website";
                             }
