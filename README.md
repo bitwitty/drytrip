@@ -1,6 +1,6 @@
 # Dry Trip
 
-An editorially curated directory of hotels, restaurants, and bars that take the non-alcoholic experience seriously. London is live with 100+ venues, each individually audited and scored on a published rubric.
+An editorially curated directory of hotels, restaurants, and bars that take the non-alcoholic experience seriously. London is live with 73 venues, each individually audited and scored on a published rubric.
 
 **Live at [drytrip.co](https://drytrip.co)**
 
@@ -44,4 +44,4 @@ npm run dev
 
 ## Status
 
-London is live with 100+ venues. City expansion is next — voting is open on the site.
+London is live with 73 venues. City expansion is next — voting is open on the site.
