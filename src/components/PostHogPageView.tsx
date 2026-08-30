@@ -2,14 +2,20 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef } from "react";
 
-// Inner component uses useSearchParams, which requires Suspense in Next.js App Router
+// Captures $pageview on SPA route changes only.
+// The initial $pageview is handled automatically by posthog.init().
 function PageView(): null {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     posthog.capture("$pageview", { $current_url: window.location.href });
   }, [pathname, searchParams]);
 
