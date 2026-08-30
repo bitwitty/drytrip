@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const { data: venues } = await supabaseAdmin
       .from("venues")
       .select(
-        "name, slug, neighborhood, city, category, dry_score, top_na_drink, short_description, vibe_tags, price_range, hours_note, booking_url, website_url"
+        "name, slug, neighborhood, city, category, dry_score, top_na_drink, vibe_tags, price_range, hours_note, booking_url, website_url"
       )
       .eq("status", "Published")
       .eq("city", "London");
@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
             category: v.category,
             dry_score: v.dry_score,
             top_na_drink: v.top_na_drink,
-            short_description: v.short_description,
             vibe_tags: v.vibe_tags,
             price_range: v.price_range,
             hours_note: v.hours_note,
