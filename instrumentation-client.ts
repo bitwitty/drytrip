@@ -22,6 +22,7 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
   person_profiles: "identified_only",
   capture_pageview: false, // handled by PostHogPageView component for SPA navigation
   capture_exceptions: true,
+  enable_heatmaps: true, // enables scroll depth tracking
   // Opt out by default — CookieConsent calls opt_in_capturing() on accept
   opt_out_capturing_by_default: !accepted,
   debug: process.env.NODE_ENV === "development",
