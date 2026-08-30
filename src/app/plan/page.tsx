@@ -19,6 +19,7 @@ import {
   Mail,
   Copy,
   Check,
+  Heart,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
@@ -26,6 +27,7 @@ import Footer from "@/components/Footer";
 
 const FREE_MESSAGES = 3; // AI responses before email gate
 const STORAGE_KEY = "drytrip_email";
+const SAVED_KEY = "drytrip_saved_venues";
 
 const suggestedPrompts = [
   "Best NA cocktails near Soho for tonight",
@@ -88,11 +90,17 @@ function PlanPageInner() {
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const [emailPromptInput, setEmailPromptInput] = useState("");
   const [honeypot, setHoneypot] = useState("");
+  const [savedVenues, setSavedVenues] = useState<Set<string>>(new Set());
+  const gateShownRef = useRef(false);
 
-  // Restore email from localStorage on mount
+  // Restore email and saved venues from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) setUserEmail(saved);
+    const savedList = localStorage.getItem(SAVED_KEY);
+    if (savedList) {
+      try { setSavedVenues(new Set(JSON.parse(savedList))); } catch { /* ignore */ }
+    }
   }, []);
 
   // Auto-scroll to latest message
@@ -103,6 +111,29 @@ function PlanPageInner() {
   const isLoading = status === "streaming" || status === "submitted";
   const assistantMessages = messages.filter((m) => m.role === "assistant").length;
   const needsEmail = !userEmail && assistantMessages >= FREE_MESSAGES && !isLoading;
+
+  // Track when email gate is shown (for drop-off rate)
+  useEffect(() => {
+    if (needsEmail && !gateShownRef.current) {
+      gateShownRef.current = true;
+      posthog?.capture("email_gate_shown", { after_messages: FREE_MESSAGES });
+    }
+  }, [needsEmail]);
+
+  function toggleSaveVenue(slug: string) {
+    setSavedVenues((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) {
+        next.delete(slug);
+        posthog?.capture("venue_unsaved", { slug });
+      } else {
+        next.add(slug);
+        posthog?.capture("venue_saved", { slug, source: "chat" });
+      }
+      localStorage.setItem(SAVED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -298,7 +329,7 @@ function PlanPageInner() {
                     {message.role === "assistant" ? (
                       <div className="space-y-4">
                         <div className="prose-sm prose prose-forest max-w-none text-forest/80 [&_strong]:text-forest [&_h1]:font-serif [&_h2]:font-serif [&_h3]:font-serif">
-                          <MessageContent content={text} />
+                          <MessageContent content={text} savedVenues={savedVenues} onToggleSave={toggleSaveVenue} />
                         </div>
 
                         {/* Feedback buttons */}
@@ -532,57 +563,183 @@ function PlanPageInner() {
 /*  Message Content — renders markdown-like text with venue links      */
 /* ------------------------------------------------------------------ */
 
-function MessageContent({ content }: { content: string }) {
+function MessageContent({
+  content,
+  savedVenues,
+  onToggleSave,
+}: {
+  content: string;
+  savedVenues: Set<string>;
+  onToggleSave: (slug: string) => void;
+}) {
   const paragraphs = content.split("\n\n").filter(Boolean);
+
+  // Group paragraphs into venue cards (### heading → content → next ### or ##)
+  type Section =
+    | { type: "venue-card"; items: string[] }
+    | { type: "content"; item: string };
+  const sections: Section[] = [];
+  let currentCard: { type: "venue-card"; items: string[] } | null = null;
+
+  for (const p of paragraphs) {
+    if (p.startsWith("### ")) {
+      if (currentCard) sections.push(currentCard);
+      currentCard = { type: "venue-card", items: [p] };
+    } else if (p.startsWith("## ") || p.startsWith("# ") || p.trim() === "---") {
+      if (currentCard) { sections.push(currentCard); currentCard = null; }
+      sections.push({ type: "content", item: p });
+    } else if (currentCard) {
+      currentCard.items.push(p);
+    } else {
+      sections.push({ type: "content", item: p });
+    }
+  }
+  if (currentCard) sections.push(currentCard);
 
   return (
     <>
-      {paragraphs.map((p, i) => {
-        if (p.trim() === "---") {
-          return <hr key={i} className="my-6 border-mist" />;
+      {sections.map((section, i) => {
+        if (section.type === "venue-card") {
+          return (
+            <VenueCard
+              key={i}
+              items={section.items}
+              savedVenues={savedVenues}
+              onToggleSave={onToggleSave}
+            />
+          );
         }
+        return <ContentBlock key={i} text={section.item} />;
+      })}
+    </>
+  );
+}
+
+function VenueCard({
+  items,
+  savedVenues,
+  onToggleSave,
+}: {
+  items: string[];
+  savedVenues: Set<string>;
+  onToggleSave: (slug: string) => void;
+}) {
+  // Extract slug from "See full review" link
+  const slug = items
+    .join("\n")
+    .match(/\[See full review[^\]]*\]\(\/venues\/([^)]+)\)/)?.[1] || null;
+  const isSaved = slug ? savedVenues.has(slug) : false;
+
+  return (
+    <div className="mt-4 rounded-xl border border-mist bg-white p-4 shadow-sm">
+      {items.map((p, j) => {
         if (p.startsWith("### ")) {
           return (
-            <h3 key={i} className="mt-8 border-t border-mist pt-4 font-serif text-lg font-semibold text-forest first:mt-4 first:border-t-0 first:pt-0">
-              <InlineText text={p.replace("### ", "")} />
-            </h3>
+            <div key={j} className="flex items-start justify-between gap-2">
+              <h3 className="font-serif text-lg font-semibold text-forest">
+                <InlineText text={p.replace("### ", "")} />
+              </h3>
+              {slug && (
+                <button
+                  onClick={() => onToggleSave(slug)}
+                  className="mt-0.5 shrink-0 rounded-lg p-1.5 transition-colors hover:bg-sandstone/20"
+                  aria-label={isSaved ? "Remove from saved" : "Save venue"}
+                >
+                  <Heart
+                    className={`size-4 ${isSaved ? "fill-clay text-clay" : "text-forest/30"}`}
+                  />
+                </button>
+              )}
+            </div>
           );
         }
-        if (p.startsWith("## ")) {
+        // Links row: style "Book" links as buttons
+        if (p.includes("](/venues/") || p.includes("[Book")) {
           return (
-            <h2 key={i} className="mt-4 font-serif text-xl font-semibold text-forest">
-              <InlineText text={p.replace("## ", "")} />
-            </h2>
+            <div key={j} className="mt-3 flex flex-wrap items-center gap-3">
+              <VenueLinks text={p} />
+            </div>
           );
         }
-        if (p.startsWith("# ")) {
-          return (
-            <h1 key={i} className="mt-4 font-serif text-2xl font-semibold text-forest">
-              <InlineText text={p.replace("# ", "")} />
-            </h1>
-          );
-        }
-
-        if (p.includes("\n- ") || p.startsWith("- ")) {
-          const items = p.split("\n").filter((line) => line.startsWith("- "));
-          return (
-            <ul key={i} className="ml-4 list-disc space-y-1">
-              {items.map((item, j) => (
-                <li key={j} className="text-sm text-forest/70">
-                  <InlineText text={item.replace("- ", "")} />
-                </li>
-              ))}
-            </ul>
-          );
-        }
-
         return (
-          <p key={i} className="text-sm leading-relaxed text-forest/80">
+          <p key={j} className="mt-2 text-sm leading-relaxed text-forest/80">
             <InlineText text={p.replace(/\n/g, " ")} />
           </p>
         );
       })}
+    </div>
+  );
+}
+
+function VenueLinks({ text }: { text: string }) {
+  const links = [...text.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)];
+  return (
+    <>
+      {links.map((match, i) => {
+        const label = match[1];
+        const href = match[2];
+        const isBook = label.toLowerCase().includes("book");
+        if (isBook) {
+          return (
+            <a
+              key={i}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+            >
+              {label}
+            </a>
+          );
+        }
+        return (
+          <Link
+            key={i}
+            href={href}
+            className="text-xs font-medium text-forest/60 underline underline-offset-2 transition-colors hover:text-forest"
+          >
+            {label}
+          </Link>
+        );
+      })}
     </>
+  );
+}
+
+function ContentBlock({ text }: { text: string }) {
+  if (text.trim() === "---") {
+    return <hr className="my-6 border-mist" />;
+  }
+  if (text.startsWith("## ")) {
+    return (
+      <h2 className="mt-6 font-serif text-xl font-semibold text-forest">
+        <InlineText text={text.replace("## ", "")} />
+      </h2>
+    );
+  }
+  if (text.startsWith("# ")) {
+    return (
+      <h1 className="mt-4 font-serif text-2xl font-semibold text-forest">
+        <InlineText text={text.replace("# ", "")} />
+      </h1>
+    );
+  }
+  if (text.includes("\n- ") || text.startsWith("- ")) {
+    const items = text.split("\n").filter((line) => line.startsWith("- "));
+    return (
+      <ul className="ml-4 list-disc space-y-1">
+        {items.map((item, j) => (
+          <li key={j} className="text-sm text-forest/70">
+            <InlineText text={item.replace("- ", "")} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  return (
+    <p className="text-sm leading-relaxed text-forest/80">
+      <InlineText text={text.replace(/\n/g, " ")} />
+    </p>
   );
 }
 

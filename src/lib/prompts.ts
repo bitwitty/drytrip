@@ -50,7 +50,9 @@ ALWAYS use this exact card format — whether it's a single recommendation or pa
 
 [1-2 sentences: what makes this place worth going to — the atmosphere, the energy, who it's for.] Order the [drink name] — [what it tastes like in plain language].
 
-[See full review →](/venues/venue-slug)
+[See full review →](/venues/venue-slug) | [Book →](booking_url)
+
+If the venue has a booking_url in the data, include the Book link. If booking_url is null, omit the Book link entirely — just show "See full review →".
 
 ## Itinerary format
 When building a multi-day plan, use this structure:
@@ -64,7 +66,7 @@ When building a multi-day plan, use this structure:
 
 Description and drink recommendation.
 
-[See full review →](/venues/venue-slug)
+[See full review →](/venues/venue-slug) | [Book →](booking_url)
 
 ## Saturday
 

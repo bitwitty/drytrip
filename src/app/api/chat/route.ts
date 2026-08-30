@@ -4,6 +4,15 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TRIP_PLANNER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+// Persistent rate limiter: 100 messages per IP per 24h, survives deploys
+const chatRatelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(100, "24 h"),
+  prefix: "drytrip:chat",
+});
 
 export async function POST(req: NextRequest) {
   // Block cross-origin requests (CSRF protection)
@@ -46,6 +55,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // IP-level rate limit (100 messages per IP per 24h, persists across deploys)
+    const { success: ipAllowed } = await chatRatelimit.limit(ip);
+    if (!ipAllowed) {
+      posthog.capture({
+        distinctId,
+        event: "chat_rate_limited",
+        properties: { scope: "ip_daily", ip },
+      });
+      return new Response(
+        JSON.stringify({
+          error: "You've hit the daily limit. Come back tomorrow to keep planning.",
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     // Fetch published London venues (London-only launch; expand when more cities are audited)
     const { data: venues, error: venueError } = await supabaseAdmin
       .from("venues")
@@ -76,7 +101,7 @@ export async function POST(req: NextRequest) {
             vibe_tags: v.vibe_tags,
             price_range: v.price_range,
             hours_note: v.hours_note,
-            has_booking: !!(v.booking_url || v.website_url),
+            booking_url: v.booking_url || v.website_url || null,
           }))
         )
       : "[]";
