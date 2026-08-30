@@ -2,7 +2,8 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import Link from "next/link";
 import {
@@ -41,6 +42,17 @@ function getTextContent(message: UIMessage): string {
 }
 
 export default function PlanPage() {
+  return (
+    <Suspense fallback={null}>
+      <PlanPageInner />
+    </Suspense>
+  );
+}
+
+function PlanPageInner() {
+  const searchParams = useSearchParams();
+  const utmSource = searchParams.get("utm_source") || searchParams.get("ref") || null;
+
   // Thread PostHog distinct + session IDs from client to /api/chat so
   // server-side events correlate with the same person/session.
   const transport = useMemo(
@@ -100,7 +112,7 @@ export default function PlanPage() {
 
     const { error } = await supabase
       .from("waitlist")
-      .insert([{ email, variant: "plan" }]);
+      .insert([{ email, variant: "plan", source: utmSource, segment: "plan" }]);
 
     if (error && error.code !== "23505") {
       setEmailStatus("error");
@@ -158,7 +170,7 @@ export default function PlanPage() {
     if (!email) return;
 
     // Save email (same as gate flow)
-    await supabase.from("waitlist").insert([{ email, variant: "plan" }]);
+    await supabase.from("waitlist").insert([{ email, variant: "plan", source: utmSource, segment: "plan" }]);
     localStorage.setItem(STORAGE_KEY, email);
     setUserEmail(email);
     setShowEmailPrompt(false);
@@ -528,7 +540,7 @@ function MessageContent({ content }: { content: string }) {
       {paragraphs.map((p, i) => {
         if (p.startsWith("### ")) {
           return (
-            <h3 key={i} className="mt-4 font-serif text-lg font-semibold text-forest">
+            <h3 key={i} className="mt-8 border-t border-mist pt-4 font-serif text-lg font-semibold text-forest first:mt-4 first:border-t-0 first:pt-0">
               <InlineText text={p.replace("### ", "")} />
             </h3>
           );
