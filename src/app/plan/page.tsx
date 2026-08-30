@@ -538,6 +538,9 @@ function MessageContent({ content }: { content: string }) {
   return (
     <>
       {paragraphs.map((p, i) => {
+        if (p.trim() === "---") {
+          return <hr key={i} className="my-6 border-mist" />;
+        }
         if (p.startsWith("### ")) {
           return (
             <h3 key={i} className="mt-8 border-t border-mist pt-4 font-serif text-lg font-semibold text-forest first:mt-4 first:border-t-0 first:pt-0">
