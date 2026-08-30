@@ -24,14 +24,14 @@ import { supabase } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 
-const FREE_MESSAGES = 2; // AI responses before email gate
+const FREE_MESSAGES = 3; // AI responses before email gate
 const STORAGE_KEY = "drytrip_email";
 
 const suggestedPrompts = [
-  "Plan a 3-day trip to London with great nightlife",
-  "Best alcohol-free bars in Soho",
-  "Date night in Mayfair, no alcohol",
-  "Zero-proof cocktails in Shoreditch",
+  "Best NA cocktails near Soho for tonight",
+  "Date night in Shoreditch, no alcohol",
+  "Where do I go if I want zero-proof beer?",
+  "Plan a weekend in London — great food, no booze",
 ];
 
 function getTextContent(message: UIMessage): string {

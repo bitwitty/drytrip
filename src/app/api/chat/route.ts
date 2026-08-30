@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   // Block cross-origin requests (CSRF protection)
   const origin = req.headers.get("origin");
   const host = req.headers.get("host");
-  if (origin && host && !origin.endsWith(host)) {
+  if (origin && host && new URL(origin).host !== host) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },
@@ -47,13 +47,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch published London venues (London-only launch; expand when more cities are audited)
-    const { data: venues } = await supabaseAdmin
+    const { data: venues, error: venueError } = await supabaseAdmin
       .from("venues")
       .select(
         "name, slug, neighborhood, city, category, dry_score, top_na_drink, vibe_tags, price_range, hours_note, booking_url, website_url"
       )
       .eq("status", "Published")
       .eq("city", "London");
+
+    if (venueError) {
+      console.error("[chat] venue fetch failed:", venueError.message);
+      return new Response(
+        JSON.stringify({ error: "Unable to load venue data — please try again." }),
+        { status: 503, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     const venueContext = venues
       ? JSON.stringify(
@@ -92,7 +100,7 @@ export async function POST(req: NextRequest) {
     });
     posthog.captureException(err instanceof Error ? err : new Error(String(err)), distinctId);
     return new Response(
-      JSON.stringify({ error: errMsg }),
+      JSON.stringify({ error: "Something went wrong — please try again." }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
