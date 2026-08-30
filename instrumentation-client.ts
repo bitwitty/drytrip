@@ -20,7 +20,7 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
   ui_host: "https://eu.posthog.com",
   defaults: "2026-01-30",
   person_profiles: "identified_only",
-  capture_pageview: true,
+  capture_pageview: false, // handled by PostHogPageView component for SPA navigation
   capture_exceptions: true,
   // Opt out by default — CookieConsent calls opt_in_capturing() on accept
   opt_out_capturing_by_default: !accepted,

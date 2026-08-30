@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Share2, Check, Link2 } from "lucide-react";
+import posthog from "posthog-js";
 
 interface ShareButtonProps {
   title: string;
@@ -19,6 +20,7 @@ export default function ShareButton({ title, text, url }: ShareButtonProps) {
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ title, text, url: shareUrl });
+        posthog?.capture("venue_shared", { method: "native_share", url });
         return;
       } catch {
         // User cancelled or share failed — fall through to copy
@@ -29,6 +31,7 @@ export default function ShareButton({ title, text, url }: ShareButtonProps) {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
+      posthog?.capture("venue_shared", { method: "copy_link", url });
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard API not available

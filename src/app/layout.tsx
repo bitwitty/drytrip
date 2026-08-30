@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Montserrat } from "next/font/google";
 import "./globals.css";
 import CookieConsent from "@/components/CookieConsent";
+import PostHogPageView from "@/components/PostHogPageView";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -64,6 +65,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <PostHogPageView />
         {children}
         <CookieConsent />
       </body>
