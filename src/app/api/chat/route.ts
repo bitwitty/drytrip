@@ -56,19 +56,24 @@ export async function POST(req: NextRequest) {
     }
 
     // IP-level rate limit (100 messages per IP per 24h, persists across deploys)
-    const { success: ipAllowed } = await chatRatelimit.limit(ip);
-    if (!ipAllowed) {
-      posthog.capture({
-        distinctId,
-        event: "chat_rate_limited",
-        properties: { scope: "ip_daily", ip },
-      });
-      return new Response(
-        JSON.stringify({
-          error: "You've hit the daily limit. Come back tomorrow to keep planning.",
-        }),
-        { status: 429, headers: { "Content-Type": "application/json" } }
-      );
+    try {
+      const { success: ipAllowed } = await chatRatelimit.limit(ip);
+      if (!ipAllowed) {
+        posthog.capture({
+          distinctId,
+          event: "chat_rate_limited",
+          properties: { scope: "ip_daily", ip },
+        });
+        return new Response(
+          JSON.stringify({
+            error: "You've hit the daily limit. Come back tomorrow to keep planning.",
+          }),
+          { status: 429, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    } catch (rateLimitErr) {
+      // If Upstash is unreachable, proceed rather than blocking the user
+      console.error("[chat] rate limit check failed:", rateLimitErr);
     }
 
     // Fetch published London venues (London-only launch; expand when more cities are audited)
@@ -124,8 +129,10 @@ export async function POST(req: NextRequest) {
       },
     });
     posthog.captureException(err instanceof Error ? err : new Error(String(err)), distinctId);
+    // Include error type (not full message) for debugging — safe to expose
+    const errorType = err instanceof Error ? err.constructor.name : "UnknownError";
     return new Response(
-      JSON.stringify({ error: "Something went wrong — please try again." }),
+      JSON.stringify({ error: `Something went wrong (${errorType}) — please try again.` }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
