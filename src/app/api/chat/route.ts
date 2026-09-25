@@ -208,6 +208,7 @@ export async function POST(req: NextRequest) {
         ...(await convertToModelMessages(messages)),
       ],
       maxOutputTokens: 2000,
+      temperature: 0.3, // lower = less embellishment beyond the venue data
       onFinish: ({ usage, providerMetadata, text }) => {
         void logRuleBreaches(modelId, text);
         // Visible in Vercel runtime logs — confirms whether prompt caching is hitting.
