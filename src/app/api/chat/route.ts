@@ -38,6 +38,28 @@ function fallbackAllowed(ip: string): boolean {
   return true;
 }
 
+// ---- Output rule check ---------------------------------------------------
+// Scans each finished answer for brand-rule breaches and logs them to
+// planner_rule_flags (service role only). Logging only; answers aren't altered.
+const RULES: { rule: string; re: RegExp }[] = [
+  { rule: "price", re: /£\s?\d|\$\s?\d|\bcheap\b|expensive|affordab|value for money|happy hour|minimum spend/i },
+  { rule: "banned-brand", re: /seedlip|opius|midi ruby|smiling wolf|martini vibrante|cleanco|real drinks|everleaf|lyre'?s|caleño|caleno|feragaia/i },
+  { rule: "award-claim", re: /michelin|award-winning|world'?s (best|50)|\bstarred\b/i },
+];
+async function logRuleBreaches(model: string, text: string) {
+  try {
+    const rows = RULES.flatMap(({ rule, re }) => {
+      const i = text.search(re);
+      return i === -1 ? [] : [{ model, rule, excerpt: text.slice(Math.max(0, i - 80), i + 80) }];
+    });
+    if (rows.length === 0) return;
+    console.warn("[chat] rule-check", JSON.stringify(rows));
+    await supabaseAdmin.from("planner_rule_flags").insert(rows);
+  } catch (e) {
+    console.error("[chat] rule-check logging failed", e);
+  }
+}
+
 // ---- Venue context cache -------------------------------------------------
 const VENUE_TTL_MS = 5 * 60 * 1000;
 let venueCache: { at: number; venueContext: string; venueCount: number } | null = null;
@@ -48,7 +70,7 @@ async function getVenueContext() {
   const { data: venues, error } = await supabaseAdmin
     .from("venues")
     .select(
-      "name, slug, neighborhood, city, category, dry_score, top_na_drink, vibe_tags, hours_note, booking_url, website_url"
+      "name, slug, neighborhood, city, category, dry_score, top_na_drink, short_description, vibe_tags, hours_note, booking_url, website_url"
     )
     .eq("status", "Published")
     .eq("city", "London")
@@ -63,6 +85,7 @@ async function getVenueContext() {
       category: v.category,
       dry_score: v.dry_score,
       top_na_drink: v.top_na_drink,
+      review_note: v.short_description,
       vibe_tags: v.vibe_tags,
       hours_note: v.hours_note,
       booking_url: v.booking_url || v.website_url || null,
@@ -161,14 +184,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Model A/B test switch: only a logged-in admin can request Haiku via the
-    // x-planner-model header. Every public visitor always gets the default model.
-    let modelId = "claude-sonnet-4-5-20250929";
+    // Default model: Haiku (about 2x faster, fewer rule breaches in the Sept 2026 A/B test).
+    // A logged-in admin can still request Sonnet via the x-planner-model header to compare.
+    let modelId = "claude-haiku-4-5";
     if (
-      req.headers.get("x-planner-model") === "haiku" &&
+      req.headers.get("x-planner-model") === "sonnet" &&
       (await isAdminCookie(req.cookies.get(ADMIN_COOKIE)?.value))
     ) {
-      modelId = "claude-haiku-4-5";
+      modelId = "claude-sonnet-4-5-20250929";
     }
 
     const result = streamText({
@@ -185,7 +208,8 @@ export async function POST(req: NextRequest) {
         ...(await convertToModelMessages(messages)),
       ],
       maxOutputTokens: 2000,
-      onFinish: ({ usage, providerMetadata }) => {
+      onFinish: ({ usage, providerMetadata, text }) => {
+        void logRuleBreaches(modelId, text);
         // Visible in Vercel runtime logs — confirms whether prompt caching is hitting.
         const a = (providerMetadata?.anthropic ?? {}) as Record<string, unknown>;
         console.log("[chat] usage", JSON.stringify({
