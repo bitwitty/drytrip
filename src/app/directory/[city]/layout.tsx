@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 const CITY_SEO: Record<string, { display: string; description: string }> = {
   london: {
     display: "London",
-    description: "73 London hotels, restaurants, and bars individually audited for non-alcoholic drinks. Every venue scored on one rubric. From Michelin-starred NA pairings to dedicated zero-proof cocktail bars.",
+    description: "London hotels, restaurants, and bars individually audited for non-alcoholic drinks. Every venue scored on one rubric. From Michelin-starred NA pairings to dedicated zero-proof cocktail bars.",
   },
 };
 
@@ -17,6 +17,7 @@ export async function generateMetadata({
 
   return {
     title: `${seo.display} Venues`,
+    alternates: { canonical: `/directory/${city}` },
     description: seo.description,
     openGraph: {
       title: `${seo.display} Alcohol-Free Venues | Dry Trip`,

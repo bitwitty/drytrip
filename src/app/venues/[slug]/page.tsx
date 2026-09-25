@@ -13,6 +13,7 @@ import VenueDetailTracker from "@/components/VenueDetailTracker";
 import StickyBookingBar from "@/components/StickyBookingBar";
 import ShareButton from "@/components/ShareButton";
 import type { Venue } from "@/lib/types";
+import { PUBLIC_VENUE_COLUMNS } from "@/lib/venue-columns";
 
 export const revalidate = 86400; // revalidate venue pages once per day
 
@@ -33,13 +34,23 @@ export async function generateMetadata({
   return {
     title: venue.name,
     description,
+    alternates: { canonical: `/venues/${venue.slug}` },
     openGraph: {
       title: `${venue.name} | Dry Trip`,
       description,
-      ...(venue.image_url ? { images: [{ url: venue.image_url }] } : {}),
+      images: [
+        venue.image_url
+          ? { url: venue.image_url }
+          : {
+              url: `/api/og?title=${encodeURIComponent(venue.name)}&subtitle=${encodeURIComponent(`Dry Score ${venue.dry_score}/5`)}`,
+              width: 1200,
+              height: 630,
+              alt: venue.name,
+            },
+      ],
     },
     twitter: {
-      card: venue.image_url ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title: `${venue.name} | Dry Trip`,
       description,
     },
@@ -69,7 +80,7 @@ async function getVenue(slug: string): Promise<Venue | null> {
   try {
     const { data } = await supabase
       .from("venues")
-      .select("*")
+      .select(PUBLIC_VENUE_COLUMNS)
       .eq("slug", slug)
       .eq("status", "Published")
       .single();
@@ -84,7 +95,7 @@ async function getRelatedVenues(venue: Venue): Promise<Venue[]> {
   try {
     const { data } = await supabase
       .from("venues")
-      .select("*")
+      .select(PUBLIC_VENUE_COLUMNS)
       .eq("status", "Published")
       .neq("id", venue.id)
       .eq("city", venue.city)
@@ -93,7 +104,7 @@ async function getRelatedVenues(venue: Venue): Promise<Venue[]> {
 
     if (!data) return [];
 
-    const others = data as Venue[];
+    const others = data as unknown as Venue[];
 
     // Use lat/lng proximity if coords are available, otherwise fall back to neighborhood match
     if (venue.latitude != null && venue.longitude != null) {

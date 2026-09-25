@@ -7,6 +7,12 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Venue } from "@/lib/types";
+import { PUBLIC_VENUE_COLUMNS } from "@/lib/venue-columns";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export const revalidate = 86400; // revalidate once per day
 
@@ -41,7 +47,7 @@ async function getFeaturedVenue(): Promise<Venue | null> {
     const query = (async () => {
       const { data } = await supabaseAdmin
         .from("venues")
-        .select("*")
+        .select(PUBLIC_VENUE_COLUMNS)
         .eq("status", "Published")
         .eq("featured", true)
         .order("dry_score", { ascending: false })
@@ -60,7 +66,7 @@ async function getLondonVenueCount(): Promise<number> {
     const query = (async () => {
       const { count } = await supabaseAdmin
         .from("venues")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("status", "Published")
         .eq("city", "London");
       return count ?? 0;
@@ -76,7 +82,7 @@ async function getWaitlistCount(): Promise<number> {
     const query = (async () => {
       const { count } = await supabaseAdmin
         .from("waitlist")
-        .select("*", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true });
       return count ?? 0;
     })();
     return await withTimeout(query, 5000, 0);
@@ -269,7 +275,7 @@ export default async function Home() {
             </div>
             <div className="grid grid-cols-5 gap-2">
               {[
-                { score: 1, label: "Nominal", color: "bg-forest/20" },
+                { score: 1, label: "Basic", color: "bg-forest/20" },
                 { score: 2, label: "Some options", color: "bg-forest/40" },
                 { score: 3, label: "Dedicated", color: "bg-forest/60" },
                 { score: 4, label: "Excellent", color: "bg-forest/80" },

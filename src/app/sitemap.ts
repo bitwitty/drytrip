@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getAllArticleSlugs } from "@/lib/articles";
 
-const BASE_URL = "https://drytrip.co";
+const BASE_URL = "https://www.drytrip.co";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
@@ -11,7 +11,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/plan`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/methodology`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/edit`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE_URL}/about`, changeFrequency: "yearly", priority: 0.4 },
+    { url: `${BASE_URL}/contact`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/privacy`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${BASE_URL}/terms`, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   // Article pages

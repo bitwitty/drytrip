@@ -15,7 +15,7 @@ import {
   type Article,
 } from "@/lib/articles";
 
-const BASE_URL = "https://drytrip.co";
+const BASE_URL = "https://www.drytrip.co";
 
 function formatType(type: Article["type"]): string {
   return type === "city-guide" ? "City Guide" : "Spotlight";

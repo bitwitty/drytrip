@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
+  alternates: { canonical: "/privacy" },
   description: "How Dry Trip collects, uses, and protects your data.",
 };
 
@@ -15,7 +16,7 @@ export default function PrivacyPage() {
         <h1 className="font-serif text-4xl font-semibold leading-tight tracking-tight text-forest md:text-5xl">
           Privacy Policy
         </h1>
-        <p className="mt-2 text-sm text-forest/50">Last updated: March 2026</p>
+        <p className="mt-2 text-sm text-forest/50">Last updated: September 2026</p>
 
         <div className="mt-10 space-y-8 text-forest/80 leading-relaxed">
           <section>
@@ -23,7 +24,9 @@ export default function PrivacyPage() {
             <p className="mt-2">
               Dry Trip (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;)
               operates the website at drytrip.co. We are a travel directory and
-              AI trip planner focused on alcohol-free experiences.
+              AI trip planner focused on alcohol-free experiences. Dry Trip is
+              operated by Katherine Moffat, who is the data controller for the
+              personal data described below.
             </p>
           </section>
 
@@ -44,10 +47,14 @@ export default function PrivacyPage() {
                 session ends.
               </li>
               <li>
-                <strong>Usage analytics</strong> &mdash; we use PostHog to
-                collect anonymised usage data (page views, feature usage, device
-                type). No personally identifiable information is sent to
-                PostHog.
+                <strong>Usage analytics (only if you accept cookies)</strong>
+                &mdash; we use PostHog to record page views, clicks, feature use,
+                device type, errors and session recordings of how you move
+                through the site. If you give us your email (for example to
+                subscribe or receive a plan by email) and have accepted
+                analytics, it is linked to your analytics profile. If you
+                decline, nothing is stored on your device and no analytics
+                events are sent.
               </li>
               <li>
                 <strong>Click tracking</strong> &mdash; when you click through
@@ -67,7 +74,10 @@ export default function PrivacyPage() {
                 To notify you when Dry Trip launches or adds new features (if
                 you joined the waitlist).
               </li>
-              <li>To improve the product based on aggregate usage patterns.</li>
+              <li>
+                To improve the product based on usage patterns (only if you have
+                accepted analytics cookies).
+              </li>
               <li>
                 We never sell, share, or rent your personal data to third
                 parties.
@@ -107,7 +117,13 @@ export default function PrivacyPage() {
                 <strong>Resend</strong> &mdash; transactional email delivery.
               </li>
               <li>
-                <strong>PostHog</strong> &mdash; anonymised product analytics.
+                <strong>PostHog</strong> (EU hosting) &mdash; product analytics
+                and session recordings, only with your consent.
+              </li>
+              <li>
+                <strong>Mapbox</strong> &mdash; the interactive maps on the
+                directory and venue pages. Mapbox receives your IP address and
+                stores a small identifier in your browser to operate the map.
               </li>
             </ul>
           </section>
@@ -115,11 +131,15 @@ export default function PrivacyPage() {
           <section>
             <h2 className="font-serif text-xl text-forest">Cookies</h2>
             <p className="mt-2">
-              Dry Trip uses minimal cookies. We use a PostHog analytics cookie
-              for anonymised usage tracking. We do not use advertising cookies
-              or cross-site tracking. Your email is stored in your
-              browser&rsquo;s local storage to avoid asking you to re-enter it
-              on return visits.
+              We ask before using analytics. If you click Accept, PostHog stores
+              cookies and local-storage identifiers so we can understand how the
+              site is used. If you click Decline, no analytics identifiers are
+              stored and you can still use everything on the site. You can change
+              your mind at any time by clearing this site&rsquo;s data in your
+              browser. We also store your cookie choice, and your email if you
+              give it to us, in your browser&rsquo;s local storage so we
+              don&rsquo;t ask again. We do not use advertising cookies or
+              cross-site tracking.
             </p>
           </section>
 
@@ -135,7 +155,20 @@ export default function PrivacyPage() {
                 email from our waitlist within 7 days).
               </li>
               <li>Unsubscribe from any emails at any time.</li>
+              <li>
+                Withdraw consent to analytics at any time.
+              </li>
+              <li>
+                Complain to the UK Information Commissioner&rsquo;s Office
+                (ico.org.uk) if you&rsquo;re unhappy with how we handle your
+                data.
+              </li>
             </ul>
+            <p className="mt-2">
+              We rely on your consent for analytics, and on our legitimate
+              interest in running and improving the service for everything else
+              (such as sending a plan you asked for).
+            </p>
           </section>
 
           <section>

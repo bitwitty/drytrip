@@ -21,10 +21,17 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
   defaults: "2026-01-30",
   person_profiles: "identified_only",
   capture_pageview: false, // handled by PostHogPageView component for SPA navigation
-  capture_exceptions: true,
-  enable_heatmaps: true, // enables scroll depth tracking
-  // Opt out by default — CookieConsent calls opt_in_capturing() on accept
+  // Until the visitor accepts: keep everything in memory (nothing written to
+  // cookies/localStorage), capture nothing, and don't load session recording,
+  // surveys, heatmaps or exception autocapture. Accepting in the CookieConsent
+  // banner switches persistence on and starts these (see enableAnalytics()).
+  persistence: accepted ? "localStorage+cookie" : "memory",
   opt_out_capturing_by_default: !accepted,
+  disable_session_recording: !accepted,
+  disable_surveys: !accepted,
+  capture_exceptions: accepted,
+  enable_heatmaps: accepted,
+  capture_dead_clicks: accepted,
   debug: process.env.NODE_ENV === "development",
 });
 

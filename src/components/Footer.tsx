@@ -13,12 +13,14 @@ export default function Footer() {
           <p className="mt-3 font-serif text-sm text-forest/50">
             &copy; {new Date().getFullYear()} Dry Trip
           </p>
-          <Link
-            href="/privacy"
-            className="mt-1 block text-xs text-forest/60 transition-colors hover:text-forest"
-          >
-            Privacy Policy
-          </Link>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            <Link href="/privacy" className="text-xs text-forest/60 transition-colors hover:text-forest">
+              Privacy
+            </Link>
+            <Link href="/terms" className="text-xs text-forest/60 transition-colors hover:text-forest">
+              Terms
+            </Link>
+          </div>
         </div>
 
         {/* Middle — Navigation */}
@@ -33,8 +35,17 @@ export default function Footer() {
 <Link href="/plan" className="text-sm text-forest/70 transition-colors hover:text-forest">
               Plan a Trip
             </Link>
+            <Link href="/edit" className="text-sm text-forest/70 transition-colors hover:text-forest">
+              The Edit
+            </Link>
             <Link href="/methodology" className="text-sm text-forest/70 transition-colors hover:text-forest">
               Methodology
+            </Link>
+            <Link href="/about" className="text-sm text-forest/70 transition-colors hover:text-forest">
+              About
+            </Link>
+            <Link href="/contact" className="text-sm text-forest/70 transition-colors hover:text-forest">
+              Contact
             </Link>
           </nav>
         </div>

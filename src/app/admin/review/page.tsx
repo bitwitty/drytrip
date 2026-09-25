@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 import { Droplets, Wine, MapPin, Check, X } from "lucide-react";
 import type { Venue } from "@/lib/types";
 
@@ -21,13 +20,11 @@ export default function AdminReviewPage() {
 
   async function fetchVenues() {
     setLoading(true);
-    const { data } = await supabase
-      .from("venues")
-      .select("*")
-      .eq("status", statusFilter)
-      .order("created_at", { ascending: false });
-
-    setVenues((data as Venue[]) || []);
+    const res = await fetch(`/api/admin/venues?status=${statusFilter}`, {
+      credentials: "same-origin",
+    });
+    const json = res.ok ? await res.json() : { venues: [] };
+    setVenues((json.venues as Venue[]) || []);
     setLoading(false);
   }
 

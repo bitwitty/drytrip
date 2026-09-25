@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/admin/", "/api/", "/go/"],
     },
-    sitemap: "https://drytrip.co/sitemap.xml",
+    sitemap: "https://www.drytrip.co/sitemap.xml",
   };
 }

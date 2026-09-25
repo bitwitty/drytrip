@@ -293,7 +293,7 @@ function PlanPageInner() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-xs text-forest/60 sm:gap-6">
               <span className="flex items-center gap-1.5">
                 <Droplets className="size-3.5" />
-                73 individually audited venues
+                Every venue individually audited
               </span>
               <span className="flex items-center gap-1.5">
                 <Shield className="size-3.5" />

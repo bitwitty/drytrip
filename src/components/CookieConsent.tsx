@@ -26,7 +26,15 @@ export default function CookieConsent() {
 
   function accept() {
     localStorage.setItem(CONSENT_KEY, "accepted");
+    posthog.set_config({
+      persistence: "localStorage+cookie",
+      disable_surveys: false,
+      capture_exceptions: true,
+      enable_heatmaps: true,
+      capture_dead_clicks: true,
+    });
     posthog.opt_in_capturing();
+    posthog.startSessionRecording();
     setVisible(false);
   }
 
@@ -46,8 +54,9 @@ export default function CookieConsent() {
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-relaxed text-forest/80">
-          We use analytics cookies to understand how people use Dry Trip — which venues get attention,
-          which AI suggestions land, and where we can improve.{" "}
+          With your OK, we use analytics cookies and session recordings to see how people use Dry Trip —
+          which venues get attention, which suggestions land, and where we can improve. Nothing is stored
+          until you accept.{" "}
           <a href="/privacy" className="underline underline-offset-2 hover:text-forest">
             Privacy policy
           </a>
@@ -56,7 +65,7 @@ export default function CookieConsent() {
         <div className="flex shrink-0 items-center gap-4">
           <button
             onClick={decline}
-            className="text-sm text-forest/50 underline underline-offset-2 hover:text-forest transition-colors"
+            className="rounded-lg border border-forest px-5 py-2 text-sm font-medium text-forest transition-colors hover:bg-forest/5"
           >
             Decline
           </button>
