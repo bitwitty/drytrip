@@ -70,7 +70,7 @@ async function getVenueContext() {
   const { data: venues, error } = await supabaseAdmin
     .from("venues")
     .select(
-      "name, slug, neighborhood, city, category, dry_score, top_na_drink, short_description, vibe_tags, hours_note, booking_url, website_url"
+      "name, slug, neighborhood, city, category, dry_score, top_na_drink, planner_note, vibe_tags, hours_note, booking_url, website_url"
     )
     .eq("status", "Published")
     .eq("city", "London")
@@ -85,7 +85,7 @@ async function getVenueContext() {
       category: v.category,
       dry_score: v.dry_score,
       top_na_drink: v.top_na_drink,
-      review_note: v.short_description,
+      review_note: v.planner_note,
       vibe_tags: v.vibe_tags,
       hours_note: v.hours_note,
       booking_url: v.booking_url || v.website_url || null,
