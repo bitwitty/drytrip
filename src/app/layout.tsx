@@ -27,7 +27,6 @@ export const metadata: Metadata = {
   description:
     "An editorially curated alcohol-free travel directory. Every venue individually audited and scored on one rubric. London is live — more cities coming.",
   metadataBase: new URL("https://www.drytrip.co"),
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: "Dry Trip",

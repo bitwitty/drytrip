@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Plan a Trip",
+  alternates: { canonical: "/plan" },
   description:
     "Plan an alcohol-free trip using editorially curated venue data. Every venue individually audited.",
   openGraph: {

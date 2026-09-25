@@ -8,6 +8,11 @@ import Footer from "@/components/Footer";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Venue } from "@/lib/types";
 import { PUBLIC_VENUE_COLUMNS } from "@/lib/venue-columns";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export const revalidate = 86400; // revalidate once per day
 

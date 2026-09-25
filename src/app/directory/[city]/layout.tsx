@@ -17,6 +17,7 @@ export async function generateMetadata({
 
   return {
     title: `${seo.display} Venues`,
+    alternates: { canonical: `/directory/${city}` },
     description: seo.description,
     openGraph: {
       title: `${seo.display} Alcohol-Free Venues | Dry Trip`,
