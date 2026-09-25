@@ -37,6 +37,40 @@ function fallbackAllowed(ip: string): boolean {
   return true;
 }
 
+// ---- Venue context cache -------------------------------------------------
+const VENUE_TTL_MS = 5 * 60 * 1000;
+let venueCache: { at: number; venueContext: string; venueCount: number } | null = null;
+
+async function getVenueContext() {
+  if (venueCache && Date.now() - venueCache.at < VENUE_TTL_MS) return venueCache;
+  // Fetch published London venues (London-only launch; expand when more cities are audited)
+  const { data: venues, error } = await supabaseAdmin
+    .from("venues")
+    .select(
+      "name, slug, neighborhood, city, category, dry_score, top_na_drink, vibe_tags, hours_note, booking_url, website_url"
+    )
+    .eq("status", "Published")
+    .eq("city", "London")
+    .order("slug"); // stable order keeps the prompt byte-identical for caching
+  if (error) throw new Error(error.message);
+  const venueContext = JSON.stringify(
+    (venues ?? []).map((v) => ({
+      name: v.name,
+      slug: v.slug,
+      neighborhood: v.neighborhood,
+      city: v.city,
+      category: v.category,
+      dry_score: v.dry_score,
+      top_na_drink: v.top_na_drink,
+      vibe_tags: v.vibe_tags,
+      hours_note: v.hours_note,
+      booking_url: v.booking_url || v.website_url || null,
+    }))
+  );
+  venueCache = { at: Date.now(), venueContext, venueCount: venues?.length ?? 0 };
+  return venueCache;
+}
+
 export async function POST(req: NextRequest) {
   // Block cross-origin requests (CSRF protection)
   const origin = req.headers.get("origin");
@@ -112,44 +146,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fetch published London venues (London-only launch; expand when more cities are audited)
-    const { data: venues, error: venueError } = await supabaseAdmin
-      .from("venues")
-      .select(
-        "name, slug, neighborhood, city, category, dry_score, top_na_drink, vibe_tags, hours_note, booking_url, website_url"
-      )
-      .eq("status", "Published")
-      .eq("city", "London");
-
-    if (venueError) {
-      console.error("[chat] venue fetch failed:", venueError.message);
+    // Venue list changes rarely; cache it per server instance for 5 minutes
+    // so each question doesn't wait on a database round trip.
+    let venueContext: string;
+    let venueCount: number;
+    try {
+      ({ venueContext, venueCount } = await getVenueContext());
+    } catch (venueErr) {
+      console.error("[chat] venue fetch failed:", venueErr);
       return new Response(
         JSON.stringify({ error: "Unable to load venue data — please try again." }),
         { status: 503, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    const venueContext = venues
-      ? JSON.stringify(
-          venues.map((v) => ({
-            name: v.name,
-            slug: v.slug,
-            neighborhood: v.neighborhood,
-            city: v.city,
-            category: v.category,
-            dry_score: v.dry_score,
-            top_na_drink: v.top_na_drink,
-            vibe_tags: v.vibe_tags,
-            hours_note: v.hours_note,
-            booking_url: v.booking_url || v.website_url || null,
-          }))
-        )
-      : "[]";
-
     const result = streamText({
       model: anthropic("claude-sonnet-4-5-20250929"),
-      system: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venues?.length ?? 0} individually audited London venues)\n${venueContext}`,
-      messages: await convertToModelMessages(messages),
+      messages: [
+        {
+          // The system prompt + venue list is identical across requests, so mark it
+          // cacheable: Anthropic reuses it instead of re-reading ~7k tokens each time
+          // (faster first word, ~90% cheaper input on cache hits).
+          role: "system",
+          content: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venueCount} individually audited London venues)\n${venueContext}`,
+          providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+        },
+        ...(await convertToModelMessages(messages)),
+      ],
       maxOutputTokens: 2000,
     });
 

@@ -379,6 +379,11 @@ function PlanPageInner() {
                   <span className="size-2 animate-bounce rounded-full bg-sandstone [animation-delay:0ms]" />
                   <span className="size-2 animate-bounce rounded-full bg-sandstone [animation-delay:150ms]" />
                   <span className="size-2 animate-bounce rounded-full bg-sandstone [animation-delay:300ms]" />
+                  {messages[messages.length - 1]?.role === "user" && (
+                    <span className="ml-2 text-sm text-forest/60">
+                      Checking our audited London venues…
+                    </span>
+                  )}
                 </div>
               </div>
             )}
