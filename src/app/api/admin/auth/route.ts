@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { ADMIN_COOKIE, adminToken } from "@/lib/admin-auth";
 
 export async function POST(req: NextRequest) {
   const { password } = await req.json();
@@ -15,8 +16,9 @@ export async function POST(req: NextRequest) {
   if (password === adminPassword) {
     // Set cookie server-side so it carries HttpOnly — JS in the browser cannot
     // read or forge it, which closes the document.cookie bypass.
+    const token = await adminToken();
     const response = NextResponse.json({ ok: true });
-    response.cookies.set("dt_admin", "1", {
+    response.cookies.set(ADMIN_COOKIE, token!, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",

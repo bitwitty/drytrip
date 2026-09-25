@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_COOKIE, isAdminCookie } from "@/lib/admin-auth";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Admin auth guard — protect all admin pages except login
   if (pathname.startsWith("/admin/") && pathname !== "/admin/login") {
-    const cookie = request.cookies.get("dt_admin");
-    if (cookie?.value !== "1") {
+    const cookie = request.cookies.get(ADMIN_COOKIE);
+    if (!(await isAdminCookie(cookie?.value))) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
   }

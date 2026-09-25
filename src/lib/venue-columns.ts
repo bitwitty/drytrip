@@ -1,0 +1,32 @@
+// Columns that are safe to send to the browser.
+// Never use select("*") for anything rendered on a public page — the full
+// venues row includes internal editor fields (notes, ai_context, status,
+// verified_by, google_place_id, source) that must not ship to visitors.
+export const PUBLIC_VENUE_COLUMNS = [
+  "id",
+  "name",
+  "slug",
+  "city",
+  "country",
+  "category",
+  "neighborhood",
+  "dry_score",
+  "top_na_drink",
+  "na_drink_count",
+  "description",
+  "short_description",
+  "website_url",
+  "menu_url",
+  "booking_url",
+  "image_url",
+  "image_credit",
+  "af_minibar",
+  "zero_proof_pairing",
+  "vibe_tags",
+  "price_range",
+  "hours_note",
+  "featured",
+  "last_verified",
+  "latitude",
+  "longitude",
+].join(", ");

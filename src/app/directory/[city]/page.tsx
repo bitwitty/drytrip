@@ -2,6 +2,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Venue } from "@/lib/types";
+import { PUBLIC_VENUE_COLUMNS } from "@/lib/venue-columns";
 import DirectoryClient from "./DirectoryClient";
 
 export const revalidate = 86400; // revalidate once per day
@@ -45,11 +46,11 @@ export default async function CityDirectoryPage({
   // Server-side data fetch — crawlable by search engines
   const { data } = await supabaseAdmin
     .from("venues")
-    .select("*")
+    .select(PUBLIC_VENUE_COLUMNS)
     .eq("status", "Published")
     .eq("city", cityConfig.dbValue);
 
-  const venues = (data ?? []) as Venue[];
+  const venues = (data ?? []) as unknown as Venue[];
 
   const neighborhoods = Array.from(
     new Set(venues.map((v) => v.neighborhood).filter(Boolean))
