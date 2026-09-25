@@ -37,10 +37,20 @@ const suggestedPrompts = [
 ];
 
 function getTextContent(message: UIMessage): string {
-  return message.parts
+  const text = message.parts
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
     .map((p) => p.text)
     .join("");
+  return message.role === "assistant" ? tidyAnswer(text) : text;
+}
+
+// Deterministic clean-up of planner answers (applies to display, copy and email):
+// - a venue written as "## Name" followed by its Dry Score line becomes a proper "### " card
+// - "NA programme"/"drinks program" style jargon becomes "list" (house style bans "programme")
+function tidyAnswer(text: string): string {
+  return text
+    .replace(/^#{1,2} (.+)\n+(\*\*Dry Score:)/gm, "### $1\n$2")
+    .replace(/\b(NA|zero-proof|alcohol-free|non-alcoholic|AF|drinks?|cocktail) program(me)?s?\b/gi, "$1 list");
 }
 
 export default function PlanPage() {
