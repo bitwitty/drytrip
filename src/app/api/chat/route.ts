@@ -6,6 +6,7 @@ import { TRIP_PLANNER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { ADMIN_COOKIE, isAdminCookie } from "@/lib/admin-auth";
 
 // Persistent rate limiter: 100 messages per IP per 24h, survives deploys.
 // Only created when Upstash is configured; otherwise we fall back to the
@@ -160,8 +161,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Model A/B test switch: only a logged-in admin can request Haiku via the
+    // x-planner-model header. Every public visitor always gets the default model.
+    let modelId = "claude-sonnet-4-5-20250929";
+    if (
+      req.headers.get("x-planner-model") === "haiku" &&
+      (await isAdminCookie(req.cookies.get(ADMIN_COOKIE)?.value))
+    ) {
+      modelId = "claude-haiku-4-5";
+    }
+
     const result = streamText({
-      model: anthropic("claude-sonnet-4-5-20250929"),
+      model: anthropic(modelId),
       messages: [
         {
           // The system prompt + venue list is identical across requests, so mark it
@@ -178,6 +189,7 @@ export async function POST(req: NextRequest) {
         // Visible in Vercel runtime logs — confirms whether prompt caching is hitting.
         const a = (providerMetadata?.anthropic ?? {}) as Record<string, unknown>;
         console.log("[chat] usage", JSON.stringify({
+          model: modelId,
           input: usage.inputTokens,
           output: usage.outputTokens,
           cachedInput: usage.cachedInputTokens,
