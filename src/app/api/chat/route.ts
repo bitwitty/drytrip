@@ -174,6 +174,16 @@ export async function POST(req: NextRequest) {
         ...(await convertToModelMessages(messages)),
       ],
       maxOutputTokens: 2000,
+      onFinish: ({ usage, providerMetadata }) => {
+        // Visible in Vercel runtime logs — confirms whether prompt caching is hitting.
+        const a = (providerMetadata?.anthropic ?? {}) as Record<string, unknown>;
+        console.log("[chat] usage", JSON.stringify({
+          input: usage.inputTokens,
+          output: usage.outputTokens,
+          cachedInput: usage.cachedInputTokens,
+          cacheCreation: a.cacheCreationInputTokens,
+        }));
+      },
     });
 
     return result.toUIMessageStreamResponse();
