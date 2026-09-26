@@ -614,8 +614,13 @@ function MessageContent({
     } else if (p.startsWith("## ") || p.startsWith("# ") || p.trim() === "---") {
       if (currentCard) { sections.push(currentCard); currentCard = null; }
       sections.push({ type: "content", item: p });
-    } else if (currentCard) {
+    } else if (currentCard && !currentCard.items.some((x) => x.includes("](/venues/"))) {
       currentCard.items.push(p);
+    } else if (currentCard) {
+      // The card ended at its review-link row; anything after it (e.g. the closing question) sits outside
+      sections.push(currentCard);
+      currentCard = null;
+      sections.push({ type: "content", item: p });
     } else {
       sections.push({ type: "content", item: p });
     }
