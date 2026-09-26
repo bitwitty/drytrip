@@ -1,5 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText, generateText, convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, type ModelMessage } from "ai";
+import { generateText, convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, type ModelMessage } from "ai";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TRIP_PLANNER_SYSTEM_PROMPT } from "@/lib/prompts";
@@ -68,6 +68,7 @@ let venueCache: {
   venueCount: number;
   closedByDay: Record<string, string[]>;
   closedSlugsByDay: Record<string, Record<string, string>>;
+  bySlug: Record<string, Record<string, unknown>>;
 } | null = null;
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -84,8 +85,7 @@ async function getVenueContext() {
     .eq("city", "London")
     .order("slug"); // stable order keeps the prompt byte-identical for caching
   if (error) throw new Error(error.message);
-  const venueContext = JSON.stringify(
-    (venues ?? []).map((v) => ({
+  const records = (venues ?? []).map((v) => ({
       name: v.name,
       slug: v.slug,
       neighborhood: v.neighborhood,
@@ -98,8 +98,10 @@ async function getVenueContext() {
       hours_note: v.hours_note,
       closed_days: v.closed_days,
       booking_url: v.booking_url || v.website_url || null,
-    }))
-  );
+    }));
+  const venueContext = JSON.stringify(records);
+  const bySlug: Record<string, Record<string, unknown>> = {};
+  for (const r of records) bySlug[r.slug as string] = r;
   // Map each weekday to the venues that are closed that day (from closed_days)
   const closedByDay: Record<string, string[]> = {};
   const closedSlugsByDay: Record<string, Record<string, string>> = {};
@@ -112,7 +114,7 @@ async function getVenueContext() {
       if ((v.dry_score ?? 0) >= 3) (closedByDay[d] ??= []).push(v.name as string);
     }
   }
-  venueCache = { at: Date.now(), venueContext, venueCount: venues?.length ?? 0, closedByDay, closedSlugsByDay };
+  venueCache = { at: Date.now(), venueContext, venueCount: venues?.length ?? 0, closedByDay, closedSlugsByDay, bySlug };
   return venueCache;
 }
 
@@ -190,6 +192,67 @@ function removeClosedCards(text: string, closedSlugsByDay: Record<string, Record
   return keep.join("\n");
 }
 const cap = (d: string) => d[0].toUpperCase() + d.slice(1);
+
+// ---- Fact-check pass ------------------------------------------------------
+// A second model call reads the finished answer against ONLY the data of the
+// venues it cites and strips or rewords anything that data doesn't support.
+const FACT_CHECK_PROMPT = `You are a fact-checker for Dry Trip, a guide to alcohol-free drinking in London.
+You receive a draft answer and the database records for every venue the draft links to. The records are the ONLY source of truth.
+
+Check every statement the draft makes about a venue: its setting, atmosphere, food, décor, views, history, people, awards, drinks and their ingredients, opening days and hours, location, and Dry Score.
+- A statement is supported only if the venue's own record (review_note, top_na_drink, vibe_tags, category, neighborhood, hours_note, closed_days, dry_score) says it or plainly implies it. Anything else — even if likely true — is unsupported.
+- Remove each unsupported statement, or reword it so it says only what the record says. Never add new facts.
+- Drink names and ingredients must match the record. Remove ingredients or flavour notes the record does not give.
+- The "**Dry Score: X/5** — Neighbourhood" line must match dry_score and neighborhood exactly.
+- Remove any price, cost or value wording, and any directions or walking times.
+- Do not change: headings, day/time structure, markdown formatting, card order, links (keep every link exactly), general framing not about a specific venue, and the closing offer line.
+- Keep the tone and wording of everything that is supported. If a sentence becomes empty, drop it.
+
+If every statement is supported, reply with exactly: OK
+Otherwise reply with the full corrected answer only — no preamble, no notes, no mention of checking.`;
+
+async function factCheck(
+  modelId: string,
+  draft: string,
+  bySlug: Record<string, Record<string, unknown>>
+): Promise<{ text: string; changed: boolean }> {
+  const slugs = [...new Set([...draft.matchAll(/\/venues\/([a-z0-9-]+)\)/g)].map((m) => m[1]))];
+  const records = slugs.map((s) => bySlug[s]).filter(Boolean);
+  if (records.length === 0) return { text: draft, changed: false };
+  try {
+    const { text: out } = await generateText({
+      model: anthropic(modelId),
+      system: FACT_CHECK_PROMPT,
+      messages: [{
+        role: "user",
+        content: `## Venue records\n${JSON.stringify(records, (k, v) => (k === "booking_url" ? undefined : v))}\n\n## Draft answer\n${draft}`,
+      }],
+      maxOutputTokens: 2500,
+      temperature: 0,
+    });
+    let checked = out.trim();
+    if (checked === "OK" || checked === "") return { text: draft, changed: false };
+    // Drop any accidental preamble before the answer's first line
+    const firstLine = draft.trim().split("\n")[0].slice(0, 30);
+    const at = checked.indexOf(firstLine);
+    if (at > 0) checked = checked.slice(at);
+    // Safety: the checker must keep every venue link and most of the text; otherwise keep the draft
+    const lostLink = slugs.some((s) => !checked.includes(`/venues/${s})`));
+    if (lostLink || checked.length < draft.length * 0.5) {
+      console.warn("[chat] fact-check output rejected", JSON.stringify({ lostLink, draftLen: draft.length, outLen: checked.length }));
+      return { text: draft, changed: false };
+    }
+    if (checked === draft.trim()) return { text: draft, changed: false };
+    const sentences = (t: string) => t.split(/(?<=[.!?])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
+    const kept = new Set(sentences(checked));
+    const removed = sentences(draft).filter((x) => !kept.has(x));
+    console.warn("[chat] fact-check changed", JSON.stringify({ removedOrReworded: removed.slice(0, 12) }));
+    return { text: checked, changed: true };
+  } catch (e) {
+    console.error("[chat] fact-check failed, sending draft", e);
+    return { text: draft, changed: false };
+  }
+}
 
 export async function POST(req: NextRequest) {
   // Block cross-origin requests (CSRF protection)
@@ -272,8 +335,9 @@ export async function POST(req: NextRequest) {
     let venueCount: number;
     let closedByDay: Record<string, string[]>;
     let closedSlugsByDay: Record<string, Record<string, string>>;
+    let bySlug: Record<string, Record<string, unknown>>;
     try {
-      ({ venueContext, venueCount, closedByDay, closedSlugsByDay } = await getVenueContext());
+      ({ venueContext, venueCount, closedByDay, closedSlugsByDay, bySlug } = await getVenueContext());
     } catch (venueErr) {
       console.error("[chat] venue fetch failed:", venueErr);
       return new Response(
@@ -310,21 +374,39 @@ export async function POST(req: NextRequest) {
         }]
       : [];
 
-    // Day-specific requests: write the whole answer, check every venue against
-    // its closed days, ask for a correction if needed, and only then send it.
+    // Every answer is written in full, checked, and only then sent:
+    //  1. day-specific requests: check each venue against its closed days, retry once, strip leftovers
+    //  2. all answers: a fact-check pass against the cited venues' own records
+    const baseMessages = [
+      {
+        // The system prompt + venue list is identical across requests, so mark it
+        // cacheable: Anthropic reuses it instead of re-reading ~7k tokens each time.
+        role: "system" as const,
+        content: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venueCount} individually audited London venues)\n${venueContext}`,
+        providerOptions: { anthropic: { cacheControl: { type: "ephemeral" as const } } },
+      },
+      ...closedNotice,
+      ...(await convertToModelMessages(messages)),
+    ] as ModelMessage[];
+    const gen = async (msgs: ModelMessage[]) => {
+      const r = await generateText({
+        model: anthropic(modelId),
+        messages: msgs,
+        maxOutputTokens: 2000,
+        temperature: 0.3, // lower = less embellishment beyond the venue data
+      });
+      const a = (r.providerMetadata?.anthropic ?? {}) as Record<string, unknown>;
+      console.log("[chat] usage", JSON.stringify({
+        model: modelId,
+        input: r.usage.inputTokens,
+        output: r.usage.outputTokens,
+        cachedInput: r.usage.cachedInputTokens,
+        cacheCreation: a.cacheCreationInputTokens,
+      }));
+      return r;
+    };
+    let { text } = await gen(baseMessages);
     if (closedLines.length) {
-      const baseMessages = [
-        {
-          role: "system" as const,
-          content: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venueCount} individually audited London venues)\n${venueContext}`,
-          providerOptions: { anthropic: { cacheControl: { type: "ephemeral" as const } } },
-        },
-        ...closedNotice,
-        ...(await convertToModelMessages(messages)),
-      ] as ModelMessage[];
-      const gen = (msgs: ModelMessage[]) =>
-        generateText({ model: anthropic(modelId), messages: msgs, maxOutputTokens: 2000, temperature: 0.3 });
-      let { text } = await gen(baseMessages);
       let violations = findClosedViolations(text, closedSlugsByDay);
       if (violations.length) {
         const fix = violations.map((v) => `${v.name} is closed on ${cap(v.day)}`).join("; ");
@@ -340,54 +422,23 @@ export async function POST(req: NextRequest) {
         console.warn("[chat] closed-day violation after retry, removing cards:", JSON.stringify(violations));
         text = removeClosedCards(text, closedSlugsByDay);
       }
-      void logRuleBreaches(modelId, text);
-      const finalText = text;
-      const stream = createUIMessageStream({
-        execute: ({ writer }) => {
-          const id = "answer";
-          writer.write({ type: "start" });
-          writer.write({ type: "text-start", id });
-          for (let i = 0; i < finalText.length; i += 60) {
-            writer.write({ type: "text-delta", id, delta: finalText.slice(i, i + 60) });
-          }
-          writer.write({ type: "text-end", id });
-          writer.write({ type: "finish" });
-        },
-      });
-      return createUIMessageStreamResponse({ stream });
     }
-
-    const result = streamText({
-      model: anthropic(modelId),
-      messages: [
-        {
-          // The system prompt + venue list is identical across requests, so mark it
-          // cacheable: Anthropic reuses it instead of re-reading ~7k tokens each time
-          // (faster first word, ~90% cheaper input on cache hits).
-          role: "system",
-          content: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venueCount} individually audited London venues)\n${venueContext}`,
-          providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
-        },
-        ...closedNotice,
-        ...(await convertToModelMessages(messages)),
-      ],
-      maxOutputTokens: 2000,
-      temperature: 0.3, // lower = less embellishment beyond the venue data
-      onFinish: ({ usage, providerMetadata, text }) => {
-        void logRuleBreaches(modelId, text);
-        // Visible in Vercel runtime logs — confirms whether prompt caching is hitting.
-        const a = (providerMetadata?.anthropic ?? {}) as Record<string, unknown>;
-        console.log("[chat] usage", JSON.stringify({
-          model: modelId,
-          input: usage.inputTokens,
-          output: usage.outputTokens,
-          cachedInput: usage.cachedInputTokens,
-          cacheCreation: a.cacheCreationInputTokens,
-        }));
+    ({ text } = await factCheck(modelId, text, bySlug));
+    void logRuleBreaches(modelId, text);
+    const finalText = text;
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        const id = "answer";
+        writer.write({ type: "start" });
+        writer.write({ type: "text-start", id });
+        for (let i = 0; i < finalText.length; i += 60) {
+          writer.write({ type: "text-delta", id, delta: finalText.slice(i, i + 60) });
+        }
+        writer.write({ type: "text-end", id });
+        writer.write({ type: "finish" });
       },
     });
-
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({ stream });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error("[chat] error:", errMsg, err);

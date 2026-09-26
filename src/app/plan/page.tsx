@@ -587,7 +587,18 @@ function MessageContent({
   savedVenues: Set<string>;
   onToggleSave: (slug: string) => void;
 }) {
-  const paragraphs = content.split("\n\n").filter(Boolean);
+  // A card heading may arrive with its body lines attached (no blank line between them).
+  // Keep "### Name" + its Dry Score line together; split any further lines into their own paragraphs.
+  const paragraphs = content
+    .split("\n\n")
+    .filter(Boolean)
+    .flatMap((p) => {
+      if (!p.startsWith("### ")) return [p];
+      const lines = p.split("\n");
+      const head = /^\*\*Dry Score/.test(lines[1] ?? "") ? lines.slice(0, 2) : lines.slice(0, 1);
+      const rest = lines.slice(head.length).filter((l) => l.trim());
+      return [head.join("\n"), ...rest];
+    });
 
   // Group paragraphs into venue cards (### heading → content → next ### or ##)
   type Section =
@@ -649,11 +660,21 @@ function VenueCard({
     <div className="mt-4 rounded-xl border border-mist bg-white p-4 shadow-sm">
       {items.map((p, j) => {
         if (p.startsWith("### ")) {
+          // Title is the first line only; anything after it (the Dry Score line) sits underneath
+          const [titleLine, ...restLines] = p.replace("### ", "").split("\n");
+          const subLine = restLines.join(" ").trim();
           return (
             <div key={j} className="flex items-start justify-between gap-2">
-              <h3 className="font-serif text-lg font-semibold text-forest">
-                <InlineText text={p.replace("### ", "")} />
-              </h3>
+              <div>
+                <h3 className="font-serif text-lg font-semibold text-forest">
+                  <InlineText text={titleLine} />
+                </h3>
+                {subLine && (
+                  <p className="mt-0.5 text-sm text-forest/70">
+                    <InlineText text={subLine} />
+                  </p>
+                )}
+              </div>
               {slug && (
                 <button
                   onClick={() => onToggleSave(slug)}
