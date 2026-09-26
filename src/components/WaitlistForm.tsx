@@ -36,6 +36,24 @@ export default function WaitlistForm({
     const { error } = await supabase.from("waitlist").insert([row]);
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Also subscribe them to Dry Dispatch (Substack). The Supabase row above is
+    // the backup: if this fails, the sign-up is still saved and can be imported.
+    if (!error || error.code === "23505") {
+      try {
+        const res = await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: normalizedEmail }),
+        });
+        if (!res.ok) {
+          posthog?.capture("substack_forward_failed", { status: res.status });
+        }
+      } catch {
+        posthog?.capture("substack_forward_failed", { status: "network" });
+      }
+    }
+
     if (error) {
       if (error.code === "23505") {
         setStatus("success");

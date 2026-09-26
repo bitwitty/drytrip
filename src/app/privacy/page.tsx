@@ -75,6 +75,10 @@ export default function PrivacyPage() {
                 you joined the waitlist).
               </li>
               <li>
+                To send you Dry Dispatch, our weekly newsletter, if you
+                subscribe. You can unsubscribe from any issue.
+              </li>
+              <li>
                 To improve the product based on usage patterns (only if you have
                 accepted analytics cookies).
               </li>
@@ -115,6 +119,20 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <strong>Resend</strong> &mdash; transactional email delivery.
+              </li>
+              <li>
+                <strong>Substack</strong> &mdash; hosts and sends Dry Dispatch,
+                our newsletter. When you subscribe on Dry Trip, your email is
+                passed to Substack. See{" "}
+                <a
+                  href="https://substack.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-forest"
+                >
+                  Substack&rsquo;s privacy policy
+                </a>
+                .
               </li>
               <li>
                 <strong>PostHog</strong> (EU hosting) &mdash; product analytics
