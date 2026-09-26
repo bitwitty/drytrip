@@ -1,5 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText, convertToModelMessages } from "ai";
+import { streamText, generateText, convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, type ModelMessage } from "ai";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TRIP_PLANNER_SYSTEM_PROMPT } from "@/lib/prompts";
@@ -67,6 +67,7 @@ let venueCache: {
   venueContext: string;
   venueCount: number;
   closedByDay: Record<string, string[]>;
+  closedSlugsByDay: Record<string, Record<string, string>>;
 } | null = null;
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -101,14 +102,17 @@ async function getVenueContext() {
   );
   // Map each weekday to the venues that are closed that day (from closed_days)
   const closedByDay: Record<string, string[]> = {};
+  const closedSlugsByDay: Record<string, Record<string, string>> = {};
   for (const v of venues ?? []) {
-    if (!v.closed_days || (v.dry_score ?? 0) < 3) continue;
+    if (!v.closed_days) continue;
     const lower = String(v.closed_days).toLowerCase();
     for (const d of WEEKDAYS) {
-      if (lower.includes(d)) (closedByDay[d] ??= []).push(v.name as string);
+      if (!lower.includes(d)) continue;
+      (closedSlugsByDay[d] ??= {})[v.slug as string] = v.name as string;
+      if ((v.dry_score ?? 0) >= 3) (closedByDay[d] ??= []).push(v.name as string);
     }
   }
-  venueCache = { at: Date.now(), venueContext, venueCount: venues?.length ?? 0, closedByDay };
+  venueCache = { at: Date.now(), venueContext, venueCount: venues?.length ?? 0, closedByDay, closedSlugsByDay };
   return venueCache;
 }
 
@@ -140,6 +144,52 @@ function daysInRequest(text: string): string[] {
   if (ti >= 0 && /\btomorrow\b/.test(t)) found.add(WEEKDAYS[(ti + 1) % 7]);
   return WEEKDAYS.filter((d) => found.has(d));
 }
+
+// ---- Itinerary validation -------------------------------------------------
+// Finds venues placed under a day heading on which they're closed.
+type Violation = { day: string; slug: string; name: string };
+function findClosedViolations(text: string, closedSlugsByDay: Record<string, Record<string, string>>): Violation[] {
+  let day: string | null = null;
+  const out: Violation[] = [];
+  for (const line of text.split("\n")) {
+    const h = line.match(/^#{1,2}\s+(.*)$/);
+    if (h) {
+      const d = WEEKDAYS.find((w) => h[1].toLowerCase().includes(w));
+      if (d) day = d;
+    }
+    const link = line.match(/\/venues\/([a-z0-9-]+)\)/);
+    if (link && day && closedSlugsByDay[day]?.[link[1]]) {
+      out.push({ day, slug: link[1], name: closedSlugsByDay[day][link[1]] });
+    }
+  }
+  return out;
+}
+// Last resort: drop the ### card of any venue that's still on a closed day.
+function removeClosedCards(text: string, closedSlugsByDay: Record<string, Record<string, string>>): string {
+  const lines = text.split("\n");
+  const keep: string[] = [];
+  let day: string | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    const h = lines[i].match(/^#{1,2}\s+(.*)$/);
+    if (h) {
+      const d = WEEKDAYS.find((w) => h[1].toLowerCase().includes(w));
+      if (d) day = d;
+    }
+    if (lines[i].startsWith("### ")) {
+      let j = i + 1;
+      while (j < lines.length && !/^#{1,3}\s/.test(lines[j])) j++;
+      const block = lines.slice(i, j);
+      const link = block.join("\n").match(/\/venues\/([a-z0-9-]+)\)/);
+      if (link && day && closedSlugsByDay[day]?.[link[1]]) { i = j - 1; continue; }
+      keep.push(...block);
+      i = j - 1;
+      continue;
+    }
+    keep.push(lines[i]);
+  }
+  return keep.join("\n");
+}
+const cap = (d: string) => d[0].toUpperCase() + d.slice(1);
 
 export async function POST(req: NextRequest) {
   // Block cross-origin requests (CSRF protection)
@@ -221,8 +271,9 @@ export async function POST(req: NextRequest) {
     let venueContext: string;
     let venueCount: number;
     let closedByDay: Record<string, string[]>;
+    let closedSlugsByDay: Record<string, Record<string, string>>;
     try {
-      ({ venueContext, venueCount, closedByDay } = await getVenueContext());
+      ({ venueContext, venueCount, closedByDay, closedSlugsByDay } = await getVenueContext());
     } catch (venueErr) {
       console.error("[chat] venue fetch failed:", venueErr);
       return new Response(
@@ -241,6 +292,71 @@ export async function POST(req: NextRequest) {
       modelId = "claude-sonnet-4-5-20250929";
     }
 
+    // Which weekdays does this conversation ask about?
+    const userText = messages
+      .filter((m: { role?: string }) => m.role === "user")
+      .map((m: { parts?: { type: string; text?: string }[] }) =>
+        (m.parts ?? []).map((p) => (p.type === "text" ? p.text ?? "" : "")).join(" ")
+      )
+      .join(" ");
+    const requestDays = daysInRequest(userText);
+    const closedLines = requestDays
+      .filter((d) => closedByDay[d]?.length)
+      .map((d) => `- ${cap(d)}: ${closedByDay[d].join(", ")}`);
+    const closedNotice: ModelMessage[] = closedLines.length
+      ? [{
+          role: "system",
+          content: `## CLOSED — hard rule for this request\nThese venues are closed on these days. Do NOT place any of them on the listed day; choose a different venue instead:\n${closedLines.join("\n")}`,
+        }]
+      : [];
+
+    // Day-specific requests: write the whole answer, check every venue against
+    // its closed days, ask for a correction if needed, and only then send it.
+    if (closedLines.length) {
+      const baseMessages = [
+        {
+          role: "system" as const,
+          content: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venueCount} individually audited London venues)\n${venueContext}`,
+          providerOptions: { anthropic: { cacheControl: { type: "ephemeral" as const } } },
+        },
+        ...closedNotice,
+        ...(await convertToModelMessages(messages)),
+      ] as ModelMessage[];
+      const gen = (msgs: ModelMessage[]) =>
+        generateText({ model: anthropic(modelId), messages: msgs, maxOutputTokens: 2000, temperature: 0.3 });
+      let { text } = await gen(baseMessages);
+      let violations = findClosedViolations(text, closedSlugsByDay);
+      if (violations.length) {
+        const fix = violations.map((v) => `${v.name} is closed on ${cap(v.day)}`).join("; ");
+        console.warn("[chat] closed-day violation, retrying:", fix);
+        ({ text } = await gen([
+          ...baseMessages,
+          { role: "assistant", content: text },
+          { role: "user", content: `Correction needed: ${fix}. Replace each with a different venue from the data that is open that day. Reply with the full corrected answer only — no mention of the correction.` },
+        ]));
+        violations = findClosedViolations(text, closedSlugsByDay);
+      }
+      if (violations.length) {
+        console.warn("[chat] closed-day violation after retry, removing cards:", JSON.stringify(violations));
+        text = removeClosedCards(text, closedSlugsByDay);
+      }
+      void logRuleBreaches(modelId, text);
+      const finalText = text;
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          const id = "answer";
+          writer.write({ type: "start" });
+          writer.write({ type: "text-start", id });
+          for (let i = 0; i < finalText.length; i += 60) {
+            writer.write({ type: "text-delta", id, delta: finalText.slice(i, i + 60) });
+          }
+          writer.write({ type: "text-end", id });
+          writer.write({ type: "finish" });
+        },
+      });
+      return createUIMessageStreamResponse({ stream });
+    }
+
     const result = streamText({
       model: anthropic(modelId),
       messages: [
@@ -252,24 +368,7 @@ export async function POST(req: NextRequest) {
           content: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venueCount} individually audited London venues)\n${venueContext}`,
           providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
         },
-        // Per-request closed-venue list for the days this conversation mentions.
-        // Kept short and next to the question so the model can't miss it.
-        ...(() => {
-          const userText = messages
-            .filter((m: { role?: string }) => m.role === "user")
-            .map((m: { parts?: { type: string; text?: string }[] }) =>
-              (m.parts ?? []).map((p) => (p.type === "text" ? p.text ?? "" : "")).join(" ")
-            )
-            .join(" ");
-          const lines = daysInRequest(userText)
-            .filter((d) => closedByDay[d]?.length)
-            .map((d) => `- ${d[0].toUpperCase() + d.slice(1)}: ${closedByDay[d].join(", ")}`);
-          if (lines.length === 0) return [];
-          return [{
-            role: "system" as const,
-            content: `## CLOSED — hard rule for this request\nThese venues are closed on these days. Do NOT place any of them on the listed day; choose a different venue instead:\n${lines.join("\n")}`,
-          }];
-        })(),
+        ...closedNotice,
         ...(await convertToModelMessages(messages)),
       ],
       maxOutputTokens: 2000,
