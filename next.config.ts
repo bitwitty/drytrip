@@ -27,6 +27,9 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https:",
               "connect-src 'self' *.supabase.co eu.i.posthog.com eu-assets.i.posthog.com api.anthropic.com *.mapbox.com *.tiles.mapbox.com",
               "worker-src 'self' blob:",
+              // Hidden iframe the sign-up form posts to (Dry Dispatch newsletter)
+              "frame-src 'self' https://drydispatch.substack.com",
+              "form-action 'self' https://drydispatch.substack.com",
               "frame-ancestors 'none'",
             ].join("; "),
           },
