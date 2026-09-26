@@ -62,7 +62,14 @@ async function logRuleBreaches(model: string, text: string) {
 
 // ---- Venue context cache -------------------------------------------------
 const VENUE_TTL_MS = 5 * 60 * 1000;
-let venueCache: { at: number; venueContext: string; venueCount: number } | null = null;
+let venueCache: {
+  at: number;
+  venueContext: string;
+  venueCount: number;
+  closedByDay: Record<string, string[]>;
+} | null = null;
+
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 async function getVenueContext() {
   if (venueCache && Date.now() - venueCache.at < VENUE_TTL_MS) return venueCache;
@@ -92,8 +99,46 @@ async function getVenueContext() {
       booking_url: v.booking_url || v.website_url || null,
     }))
   );
-  venueCache = { at: Date.now(), venueContext, venueCount: venues?.length ?? 0 };
+  // Map each weekday to the venues that are closed that day (from closed_days)
+  const closedByDay: Record<string, string[]> = {};
+  for (const v of venues ?? []) {
+    if (!v.closed_days || (v.dry_score ?? 0) < 3) continue;
+    const lower = String(v.closed_days).toLowerCase();
+    for (const d of WEEKDAYS) {
+      if (lower.includes(d)) (closedByDay[d] ??= []).push(v.name as string);
+    }
+  }
+  venueCache = { at: Date.now(), venueContext, venueCount: venues?.length ?? 0, closedByDay };
   return venueCache;
+}
+
+// Work out which weekdays the user's request is about (named days, ranges,
+// "weekend", "today/tonight", "tomorrow"), using London time for relative days.
+function daysInRequest(text: string): string[] {
+  const t = text.toLowerCase();
+  const found = new Set<string>();
+  for (const d of WEEKDAYS) if (new RegExp(`\\b${d}s?\\b`).test(t)) found.add(d);
+  const range = t.match(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+(?:to|through|until|till|-|–)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+  if (range) {
+    let i = WEEKDAYS.indexOf(range[1]);
+    const end = WEEKDAYS.indexOf(range[2]);
+    for (let n = 0; n < 7; n++) { found.add(WEEKDAYS[i]); if (i === end) break; i = (i + 1) % 7; }
+  }
+  // Trip spans like "land Saturday … leave Monday": include the days in between
+  if (/\b(land|arriv|leav|depart|fly out|flying|until|through)/.test(t)) {
+    const mentioned = [...t.matchAll(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g)].map((m) => m[1]);
+    if (mentioned.length >= 2) {
+      let i = WEEKDAYS.indexOf(mentioned[0]);
+      const end = WEEKDAYS.indexOf(mentioned[mentioned.length - 1]);
+      for (let n = 0; n < 7; n++) { found.add(WEEKDAYS[i]); if (i === end) break; i = (i + 1) % 7; }
+    }
+  }
+  if (/\bweekend\b/.test(t)) ["friday", "saturday", "sunday"].forEach((d) => found.add(d));
+  const londonToday = new Date().toLocaleDateString("en-GB", { weekday: "long", timeZone: "Europe/London" }).toLowerCase();
+  const ti = WEEKDAYS.indexOf(londonToday);
+  if (ti >= 0 && /\b(today|tonight|this evening|this afternoon)\b/.test(t)) found.add(WEEKDAYS[ti]);
+  if (ti >= 0 && /\btomorrow\b/.test(t)) found.add(WEEKDAYS[(ti + 1) % 7]);
+  return WEEKDAYS.filter((d) => found.has(d));
 }
 
 export async function POST(req: NextRequest) {
@@ -175,8 +220,9 @@ export async function POST(req: NextRequest) {
     // so each question doesn't wait on a database round trip.
     let venueContext: string;
     let venueCount: number;
+    let closedByDay: Record<string, string[]>;
     try {
-      ({ venueContext, venueCount } = await getVenueContext());
+      ({ venueContext, venueCount, closedByDay } = await getVenueContext());
     } catch (venueErr) {
       console.error("[chat] venue fetch failed:", venueErr);
       return new Response(
@@ -206,6 +252,24 @@ export async function POST(req: NextRequest) {
           content: `${TRIP_PLANNER_SYSTEM_PROMPT}\n\n## Current venue data (${venueCount} individually audited London venues)\n${venueContext}`,
           providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
         },
+        // Per-request closed-venue list for the days this conversation mentions.
+        // Kept short and next to the question so the model can't miss it.
+        ...(() => {
+          const userText = messages
+            .filter((m: { role?: string }) => m.role === "user")
+            .map((m: { parts?: { type: string; text?: string }[] }) =>
+              (m.parts ?? []).map((p) => (p.type === "text" ? p.text ?? "" : "")).join(" ")
+            )
+            .join(" ");
+          const lines = daysInRequest(userText)
+            .filter((d) => closedByDay[d]?.length)
+            .map((d) => `- ${d[0].toUpperCase() + d.slice(1)}: ${closedByDay[d].join(", ")}`);
+          if (lines.length === 0) return [];
+          return [{
+            role: "system" as const,
+            content: `## CLOSED — hard rule for this request\nThese venues are closed on these days. Do NOT place any of them on the listed day; choose a different venue instead:\n${lines.join("\n")}`,
+          }];
+        })(),
         ...(await convertToModelMessages(messages)),
       ],
       maxOutputTokens: 2000,
