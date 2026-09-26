@@ -115,7 +115,7 @@ function PlanPageInner() {
 
   // Auto-scroll to latest message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
   const isLoading = status === "streaming" || status === "submitted";
@@ -418,7 +418,7 @@ function PlanPageInner() {
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} className="scroll-mb-40" />
           </div>
         )}
 
