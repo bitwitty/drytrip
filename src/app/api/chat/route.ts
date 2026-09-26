@@ -194,63 +194,159 @@ function removeClosedCards(text: string, closedSlugsByDay: Record<string, Record
 const cap = (d: string) => d[0].toUpperCase() + d.slice(1);
 
 // ---- Fact-check pass ------------------------------------------------------
-// A second model call reads the finished answer against ONLY the data of the
-// venues it cites and strips or rewords anything that data doesn't support.
-const FACT_CHECK_PROMPT = `You are a fact-checker for Dry Trip, a guide to alcohol-free drinking in London.
-You receive a draft answer and the database records for every venue the draft links to. The records are the ONLY source of truth.
+// The finished answer is split into numbered sentences, each tagged with the
+// venue card it belongs to. A second model call judges every sentence against
+// that venue's record only; the code then applies its fixes, so headings,
+// links and structure can't be damaged. Dry Score lines are corrected in code.
+const FACT_CHECK_PROMPT = `You are a strict fact-checker for Dry Trip, a guide to alcohol-free drinking in London.
+You get the database records for some venues, then a numbered list of sentences from a draft answer. Each sentence is tagged with the venue it is about, or "general".
 
-Check every statement the draft makes about a venue: its setting, atmosphere, food, décor, views, history, people, awards, drinks and their ingredients, opening days and hours, location, and Dry Score.
-- A statement is supported only if the venue's own record (review_note, top_na_drink, vibe_tags, category, neighborhood, hours_note, closed_days, dry_score) says it or plainly implies it. Anything else — even if likely true — is unsupported.
-- Remove each unsupported statement, or reword it so it says only what the record says. Never add new facts.
-- Drink names and ingredients must match the record. Remove ingredients or flavour notes the record does not give.
-- The "**Dry Score: X/5** — Neighbourhood" line must match dry_score and neighborhood exactly.
-- Remove any price, cost or value wording, and any directions or walking times.
-- Do not change: headings, day/time structure, markdown formatting, card order, links (keep every link exactly), general framing not about a specific venue, and the closing offer line.
-- Keep the tone and wording of everything that is supported. If a sentence becomes empty, drop it.
+The records are the ONLY source of truth. Judge every sentence:
+- S = every claim in it is stated in, or plainly implied by, that venue's record (review_note, top_na_drink, vibe_tags, category, neighborhood, hours_note, closed_days).
+- U = it contains anything the record does not say.
 
-If every statement is supported, reply with exactly: OK
-Otherwise reply with the full corrected answer only — no preamble, no notes, no mention of checking.`;
+Opinions, impressions and evaluations are claims too. Words like "precise", "crafted with care", "serious", "proper", "not an afterthought", "on equal footing", "feels unremarkable", "punches above", "date-night ready", "no fuss", "open late", "designed to match the food", "changes with the menu", "relaxed", "romantic" are U unless the record says the same thing.
+Food, décor, views, service, staff, history, awards, hours, days, ingredients, flavours and comparisons must all be in the record. A drink's ingredients must match the record exactly.
+"general" sentences: S if they only frame the answer (e.g. "Here are three picks", "Want a full evening plan?") or state something true of the named venues' records; U if they make any other claim.
+Any price, cost or value wording, or directions/walking times: U.
+
+Output one line per sentence, in order, nothing else:
+<number> S
+<number> U | <rewritten sentence using only what the record says, same tone — or leave empty after the bar to delete it>`;
+
+type Piece = { n: number; line: number; text: string; slug: string | null };
+
+function splitForCheck(draft: string) {
+  const lines = draft.split("\n");
+  const pieces: Piece[] = [];
+  const skip = new Set<number>();
+  let slug: string | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/^#{1,2}\s/.test(l)) { slug = null; continue; }
+    if (l.startsWith("### ")) {
+      // Card: find its slug from the review link further down the block
+      let j = i + 1;
+      while (j < lines.length && !/^#{1,3}\s/.test(lines[j])) j++;
+      slug = lines.slice(i, j).join("\n").match(/\/venues\/([a-z0-9-]+)\)/)?.[1] ?? null;
+      continue;
+    }
+    if (/\]\(\/venues\//.test(l)) { skip.add(i); slug = null; continue; } // link row ends the card
+    if (!l.trim() || /^\*\*Dry Score/.test(l) || /^\s*\[/.test(l) || l.trim() === "---") { skip.add(i); continue; }
+    for (const s of l.split(/(?<=[.!?])\s+(?=["'“A-Z])/)) {
+      if (s.trim()) pieces.push({ n: pieces.length + 1, line: i, text: s.trim(), slug });
+    }
+  }
+  return { lines, pieces };
+}
+
+// Put each card's Dry Score line back in line with the database.
+function fixScoreLines(text: string, bySlug: Record<string, Record<string, unknown>>) {
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].startsWith("### ")) continue;
+    let j = i + 1;
+    while (j < lines.length && !/^#{1,3}\s/.test(lines[j])) j++;
+    const slug = lines.slice(i, j).join("\n").match(/\/venues\/([a-z0-9-]+)\)/)?.[1];
+    const rec = slug ? bySlug[slug] : undefined;
+    if (!rec) continue;
+    for (let k = i + 1; k < j; k++) {
+      if (/^\*\*Dry Score/.test(lines[k])) {
+        lines[k] = `**Dry Score: ${rec.dry_score}/5** — ${rec.neighborhood}`;
+        break;
+      }
+    }
+  }
+  return lines.join("\n");
+}
+
+// A card whose whole description was removed gets the venue's vetted note instead.
+function refillEmptyCards(text: string, bySlug: Record<string, Record<string, unknown>>) {
+  const lines = text.split("\n");
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    out.push(lines[i]);
+    if (!lines[i].startsWith("### ")) continue;
+    // The card runs to its review-link row (or the next heading)
+    let j = i + 1;
+    while (j < lines.length && !/^#{1,3}\s/.test(lines[j])) {
+      j++;
+      if (/\]\(\/venues\//.test(lines[j - 1])) break;
+    }
+    const block = lines.slice(i + 1, j);
+    const slug = block.join("\n").match(/\/venues\/([a-z0-9-]+)\)/)?.[1];
+    const note = slug ? (bySlug[slug]?.review_note as string | undefined) : undefined;
+    const hasBody = block.some((l) => l.trim() && !/^\*\*Dry Score/.test(l) && !/^\s*\[/.test(l) && !/\]\(\/venues\//.test(l));
+    if (hasBody || !note) continue;
+    for (const b of block) {
+      out.push(b);
+      if (/^\*\*Dry Score/.test(b)) out.push("", note);
+    }
+    i = j - 1;
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n");
+}
 
 async function factCheck(
   modelId: string,
   draft: string,
   bySlug: Record<string, Record<string, unknown>>
 ): Promise<{ text: string; changed: boolean }> {
-  const slugs = [...new Set([...draft.matchAll(/\/venues\/([a-z0-9-]+)\)/g)].map((m) => m[1]))];
+  const scored = fixScoreLines(draft, bySlug);
+  const slugs = [...new Set([...scored.matchAll(/\/venues\/([a-z0-9-]+)\)/g)].map((m) => m[1]))];
   const records = slugs.map((s) => bySlug[s]).filter(Boolean);
-  if (records.length === 0) return { text: draft, changed: false };
+  if (records.length === 0) return { text: scored, changed: scored !== draft };
+  const { lines, pieces } = splitForCheck(scored);
+  if (pieces.length === 0) return { text: scored, changed: scored !== draft };
   try {
+    const numbered = pieces
+      .map((p) => `${p.n} [${p.slug ? (bySlug[p.slug]?.name as string) ?? p.slug : "general"}] ${p.text}`)
+      .join("\n");
     const { text: out } = await generateText({
       model: anthropic(modelId),
       system: FACT_CHECK_PROMPT,
       messages: [{
         role: "user",
-        content: `## Venue records\n${JSON.stringify(records, (k, v) => (k === "booking_url" ? undefined : v))}\n\n## Draft answer\n${draft}`,
+        content: `## Venue records\n${JSON.stringify(records, (k, v) => (k === "booking_url" || k === "slug" || k === "city" ? undefined : v))}\n\n## Sentences\n${numbered}`,
       }],
-      maxOutputTokens: 2500,
+      maxOutputTokens: 1500,
       temperature: 0,
     });
-    let checked = out.trim();
-    if (checked === "OK" || checked === "") return { text: draft, changed: false };
-    // Drop any accidental preamble before the answer's first line
-    const firstLine = draft.trim().split("\n")[0].slice(0, 30);
-    const at = checked.indexOf(firstLine);
-    if (at > 0) checked = checked.slice(at);
-    // Safety: the checker must keep every venue link and most of the text; otherwise keep the draft
-    const lostLink = slugs.some((s) => !checked.includes(`/venues/${s})`));
-    if (lostLink || checked.length < draft.length * 0.5) {
-      console.warn("[chat] fact-check output rejected", JSON.stringify({ lostLink, draftLen: draft.length, outLen: checked.length }));
-      return { text: draft, changed: false };
+    const fixes = new Map<number, string>();
+    for (const row of out.split("\n")) {
+      const m = row.trim().match(/^(\d+)\s+U\s*(?:\|\s*(.*))?$/);
+      if (m) fixes.set(Number(m[1]), (m[2] ?? "").trim());
     }
-    if (checked === draft.trim()) return { text: draft, changed: false };
-    const sentences = (t: string) => t.split(/(?<=[.!?])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
-    const kept = new Set(sentences(checked));
-    const removed = sentences(draft).filter((x) => !kept.has(x));
-    console.warn("[chat] fact-check changed", JSON.stringify({ removedOrReworded: removed.slice(0, 12) }));
-    return { text: checked, changed: true };
+    if (fixes.size === 0) return { text: scored, changed: scored !== draft };
+    // Safety: if the checker wants to delete most of the answer, something went wrong — keep it
+    const deletions = [...fixes.values()].filter((f) => !f).length;
+    if (deletions > pieces.length * 0.6) {
+      console.warn("[chat] fact-check rejected (too many deletions)", deletions, pieces.length);
+      return { text: scored, changed: scored !== draft };
+    }
+    const newLines = [...lines];
+    const byLine = new Map<number, Piece[]>();
+    for (const p of pieces) byLine.set(p.line, [...(byLine.get(p.line) ?? []), p]);
+    for (const [ln, ps] of byLine) {
+      if (!ps.some((p) => fixes.has(p.n))) continue;
+      newLines[ln] = ps
+        .map((p) => (fixes.has(p.n) ? fixes.get(p.n)! : p.text))
+        .filter(Boolean)
+        .join(" ");
+    }
+    // Drop lines emptied by deletions, and collapse the blank lines they leave
+    let text = newLines
+      .filter((l, i) => !(byLine.has(i) && !l.trim()))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n");
+    text = refillEmptyCards(text, bySlug);
+    console.warn("[chat] fact-check changed", JSON.stringify(
+      [...fixes].map(([n, f]) => ({ was: pieces[n - 1]?.text, now: f || "(removed)" }))
+    ));
+    return { text, changed: true };
   } catch (e) {
     console.error("[chat] fact-check failed, sending draft", e);
-    return { text: draft, changed: false };
+    return { text: scored, changed: scored !== draft };
   }
 }
 
