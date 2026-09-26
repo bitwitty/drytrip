@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Globe } from "lucide-react";
 import CityVoteGrid from "./CityVoteGrid";
 import WaitlistForm from "./WaitlistForm";
+import { NewsletterEmbed } from "./NewsletterSignup";
 
 export default function CityVoteSection() {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -29,11 +30,22 @@ export default function CityVoteSection() {
               onSelectCity={setSelectedCity}
             />
           </div>
-          <p className="mt-6 text-center text-xs text-forest/40">
-            {selectedCity
-              ? `Sign up below to lock in your vote for ${selectedCity}.`
-              : "Pick a city, then sign up to lock in your vote."}
-          </p>
+          {selectedCity ? (
+            <div className="mx-auto mt-8 max-w-md">
+              <p className="mb-3 text-center text-xs text-forest/60">
+                Add your email to lock in your vote for {selectedCity}.
+              </p>
+              <WaitlistForm
+                buttonText="Lock in my vote"
+                successMessage="Vote counted."
+                votedCity={selectedCity}
+              />
+            </div>
+          ) : (
+            <p className="mt-6 text-center text-xs text-forest/40">
+              Pick a city, then add your email to lock in your vote.
+            </p>
+          )}
         </div>
       </section>
 
@@ -44,19 +56,14 @@ export default function CityVoteSection() {
       >
         <div className="mx-auto max-w-2xl px-6 py-20 text-center md:px-12">
           <h2 className="font-serif text-3xl tracking-tight text-forest">
-            The newsletter.
+            Dry Dispatch
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-forest/70">
-            Editorial notes from the directory. New venues as they clear the
-            editor. Occasional city edits. Written when there&rsquo;s something
-            worth saying.
+            One place worth your evening, exactly what to order, and how it
+            scored. Every Thursday.
           </p>
-          <div className="mx-auto mt-8 max-w-md">
-            <WaitlistForm
-              buttonText="Subscribe"
-              successMessage="You're on the list. First dispatch when there's something worth sending."
-              votedCity={selectedCity}
-            />
+          <div className="mx-auto mt-8 flex max-w-md justify-center">
+            <NewsletterEmbed />
           </div>
         </div>
       </section>

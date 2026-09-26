@@ -161,7 +161,7 @@ export default async function Home() {
                 Dry Dispatch: one venue worth your evening, every Thursday
               </p>
               <div className="mt-2 max-w-sm">
-                <NewsletterButton />
+                <NewsletterButton href="#newsletter" />
               </div>
               <p className="mt-3 text-xs text-forest/60">
                 {londonCountDisplay} London venues. Every one individually audited.

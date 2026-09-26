@@ -1,8 +1,8 @@
 import { ArrowRight } from "lucide-react";
 
 // Dry Dispatch (Substack) sign-up. Substack blocks sign-ups sent from other
-// sites, so we use its own embed where there's room, and a link to its
-// subscribe page in tight spots (hero, footer).
+// sites, so we use its own embed. Tight spots (hero, footer) get an on-brand
+// button that jumps to the full embed in the home page newsletter band.
 
 export const DRY_DISPATCH_URL = "https://drydispatch.substack.com";
 
@@ -20,12 +20,16 @@ export function NewsletterEmbed() {
   );
 }
 
-export function NewsletterButton({ label = "Subscribe to Dry Dispatch" }: { label?: string }) {
+export function NewsletterButton({
+  label = "Get Dry Dispatch",
+  href = "/#newsletter",
+}: {
+  label?: string;
+  href?: string;
+}) {
   return (
     <a
-      href={`${DRY_DISPATCH_URL}/subscribe`}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={href}
       className="inline-flex items-center justify-center gap-2 rounded-lg bg-forest px-6 py-3 font-medium text-linen transition-opacity hover:opacity-90"
     >
       {label}

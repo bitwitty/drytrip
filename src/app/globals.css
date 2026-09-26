@@ -17,3 +17,10 @@ body {
   color: var(--color-forest);
   font-family: var(--font-sans);
 }
+
+/* Smooth jump to in-page sections (e.g. the Dry Dispatch sign-up band) */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
