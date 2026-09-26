@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Compass, Sparkles, Shield, Droplets, MapPin, Wine } from "lucide-react";
-import WaitlistForm from "@/components/WaitlistForm";
+import { NewsletterButton } from "@/components/NewsletterSignup";
 import CityVoteSection from "@/components/CityVoteSection";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
@@ -100,7 +100,6 @@ export default async function Home() {
 
   const londonCountDisplay = londonVenueCount > 0 ? londonVenueCount : 107;
   // Only show social proof if we have a meaningful number; round down to nearest 50
-  const waitlistDisplay = waitlistCount > 50 ? Math.floor(waitlistCount / 50) * 50 : 0;
 
   const organizationJsonLd = {
     "@context": "https://schema.org",
@@ -159,16 +158,10 @@ export default async function Home() {
             </div>
             <div className="mt-6">
               <p className="text-xs text-forest/50">
-                Get notified when new cities launch
-                {waitlistDisplay > 0 && (
-                  <span className="ml-1.5 text-forest/40">· Join {waitlistDisplay}+ others</span>
-                )}
+                Dry Dispatch: one venue worth your evening, every Thursday
               </p>
               <div className="mt-2 max-w-sm">
-                <WaitlistForm
-                  buttonText="Notify me"
-                  successMessage="You're on the list."
-                />
+                <NewsletterButton />
               </div>
               <p className="mt-3 text-xs text-forest/60">
                 {londonCountDisplay} London venues. Every one individually audited.

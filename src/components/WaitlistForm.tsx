@@ -5,51 +5,6 @@ import posthog from "posthog-js";
 import { supabase } from "@/lib/supabase";
 import { ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 
-const SUBSTACK_URL = "https://drydispatch.substack.com";
-
-function subscribeToSubstack(email: string) {
-  try {
-    const frameName = "substack-signup-frame";
-    let frame = document.querySelector<HTMLIFrameElement>(`iframe[name="${frameName}"]`);
-    if (!frame) {
-      frame = document.createElement("iframe");
-      frame.name = frameName;
-      frame.title = "Newsletter sign-up";
-      frame.setAttribute("aria-hidden", "true");
-      frame.tabIndex = -1;
-      frame.style.display = "none";
-      document.body.appendChild(frame);
-    }
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = `${SUBSTACK_URL}/api/v1/free?nojs=true`;
-    form.target = frameName;
-    form.style.display = "none";
-    const fields: Record<string, string> = {
-      email,
-      first_url: window.location.href,
-      first_referrer: document.referrer,
-      current_url: window.location.href,
-      current_referrer: document.referrer,
-      referral_code: "",
-      source: "embed",
-    };
-    for (const [name, value] of Object.entries(fields)) {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = name;
-      input.value = value;
-      form.appendChild(input);
-    }
-    document.body.appendChild(form);
-    form.submit();
-    form.remove();
-    posthog?.capture("substack_signup_submitted");
-  } catch {
-    posthog?.capture("substack_forward_failed", { status: "browser" });
-  }
-}
-
 interface WaitlistFormProps {
   buttonText: string;
   successMessage: string;
@@ -82,14 +37,6 @@ export default function WaitlistForm({
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Also subscribe them to Dry Dispatch (Substack). Substack blocks
-    // server-side sign-ups, so the visitor's browser submits the same form
-    // Substack's own embed uses, into a hidden iframe (no page change).
-    // The Supabase row above is the backup if this doesn't go through.
-    if (!error || error.code === "23505") {
-      subscribeToSubstack(normalizedEmail);
-    }
-
     if (error) {
       if (error.code === "23505") {
         setStatus("success");
@@ -116,6 +63,15 @@ export default function WaitlistForm({
             {votedCity && ` Your vote for ${votedCity} is in.`}
           </p>
         </div>
+        <a
+          href="https://drydispatch.substack.com/subscribe"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-forest underline underline-offset-4 hover:opacity-80"
+        >
+          Get Dry Dispatch, our weekly letter &rarr;
+        </a>
+        <br />
         <a
           href="https://www.instagram.com/drytrip.co"
           target="_blank"

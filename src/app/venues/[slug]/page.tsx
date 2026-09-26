@@ -7,7 +7,7 @@ import { Sparkles } from "lucide-react";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import WaitlistForm from "@/components/WaitlistForm";
+import { NewsletterEmbed } from "@/components/NewsletterSignup";
 import VenueMapClient from "@/components/VenueMapClient";
 import VenueDetailTracker from "@/components/VenueDetailTracker";
 import StickyBookingBar from "@/components/StickyBookingBar";
@@ -548,10 +548,7 @@ export default async function VenueDetailPage({
             Get weekly finds like these. No spam.
           </p>
           <div className="mt-3 max-w-md">
-            <WaitlistForm
-              buttonText="Subscribe"
-              successMessage="You're in. Weekly intel, starting soon."
-            />
+            <NewsletterEmbed />
           </div>
         </section>
       </div>

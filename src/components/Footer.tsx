@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Instagram } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import WaitlistForm from "@/components/WaitlistForm";
+import { NewsletterButton } from "@/components/NewsletterSignup";
 
 export default function Footer() {
   return (
@@ -56,10 +56,7 @@ export default function Footer() {
             Stay in the loop
           </h3>
           <div className="mt-3">
-            <WaitlistForm
-              buttonText="Subscribe"
-              successMessage="You're on the list."
-            />
+            <NewsletterButton label="Subscribe" />
           </div>
           <a
             href="https://www.instagram.com/drytrip.co"

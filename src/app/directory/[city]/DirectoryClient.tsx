@@ -6,7 +6,7 @@ import Link from "next/link";
 import posthog from "posthog-js";
 import Image from "next/image";
 import { Droplets, Wine, MapPin, Search, Sparkles, ArrowUpDown, Map, X } from "lucide-react";
-import WaitlistForm from "@/components/WaitlistForm";
+import { NewsletterEmbed } from "@/components/NewsletterSignup";
 import type { Venue } from "@/lib/types";
 
 const VenueMap = dynamic(() => import("@/components/VenueMap"), { ssr: false });
@@ -291,10 +291,7 @@ export default function DirectoryClient({
             Get notified when new venues clear the editor. No spam.
           </p>
           <div className="mx-auto mt-6 max-w-md">
-            <WaitlistForm
-              buttonText="Subscribe"
-              successMessage="You're on the list. First dispatch when there's something worth sending."
-            />
+            <NewsletterEmbed />
           </div>
         </div>
       </section>

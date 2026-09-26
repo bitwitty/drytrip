@@ -5,7 +5,7 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import { Sparkles } from "lucide-react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import WaitlistForm from "@/components/WaitlistForm";
+import { NewsletterEmbed } from "@/components/NewsletterSignup";
 import { mdxComponents } from "@/components/mdx-components";
 import {
   getArticleBySlug,
@@ -218,10 +218,7 @@ export default async function ArticlePage({
           More guides and finds like this, weekly. No spam.
         </p>
         <div className="mt-3 max-w-md">
-          <WaitlistForm
-            buttonText="Subscribe"
-            successMessage="You're in. Weekly intel from The Edit, starting soon."
-          />
+          <NewsletterEmbed />
         </div>
       </section>
 
